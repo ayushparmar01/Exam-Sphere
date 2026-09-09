@@ -43,9 +43,20 @@ app.use(
   })
 );
 
+const allowedOrigins = [
+  process.env.CLIENT_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
@@ -95,6 +106,18 @@ app.get('/api/health', (req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
+// Handle port conflict and server errors gracefully
+httpServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n[ExamSphere Server] ⚠️ Port ${PORT} is currently in use by another process.`);
+    console.error(`[ExamSphere Server] Run the following command in PowerShell to free port ${PORT}:`);
+    console.error(`   Stop-Process -Id (Get-NetTCPConnection -LocalPort ${PORT}).OwningProcess -Force\n`);
+  } else {
+    console.error('[ExamSphere Server] Server error:', err.message);
+  }
+  process.exit(1);
+});
 
 if (process.env.NODE_ENV !== 'test') {
   httpServer.listen(PORT, () => {

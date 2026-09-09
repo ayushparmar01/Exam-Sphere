@@ -115,31 +115,31 @@ const examSchema = new mongoose.Schema(
     // Proctoring & Integrity Configuration
     cameraRequired: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     cameraMonitoringEnabled: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     microphoneRequired: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     microphoneMonitoringEnabled: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     facePresenceMonitoringEnabled: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     multipleFaceDetectionEnabled: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     fullscreenRequired: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     maxFullscreenExits: {
       type: Number,

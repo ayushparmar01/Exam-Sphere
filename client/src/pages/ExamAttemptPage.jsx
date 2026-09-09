@@ -28,6 +28,8 @@ import {
   Loader2,
   Send,
   ShieldAlert,
+  Maximize,
+  Minimize,
   Wifi,
   WifiOff,
 } from 'lucide-react';

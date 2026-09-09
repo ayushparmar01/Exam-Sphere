@@ -27,15 +27,16 @@ export default function ExamEnvironmentCheckModal({
   const [storageReady, setStorageReady] = useState(true);
   const [isTestingAudio, setIsTestingAudio] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [hardwareExemption, setHardwareExemption] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
 
-  const cameraRequired = !!examConfig.cameraRequired;
-  const micRequired = !!examConfig.microphoneRequired;
-  const fullscreenRequired = !!examConfig.fullscreenRequired;
+  const cameraRequired = !!(examConfig.cameraRequired || examConfig.cameraMonitoringEnabled);
+  const micRequired = !!(examConfig.microphoneRequired || examConfig.microphoneMonitoringEnabled);
+  const fullscreenRequired = examConfig.fullscreenRequired !== false;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -158,10 +159,17 @@ export default function ExamEnvironmentCheckModal({
   };
 
   // Determine whether candidate is allowed to proceed
-  const cameraPassed = !cameraRequired || cameraStatus === 'READY';
-  const micPassed = !micRequired || micStatus === 'READY';
+  const cameraPassed =
+    !cameraRequired ||
+    cameraStatus === 'READY' ||
+    (hardwareExemption && (cameraStatus === 'UNAVAILABLE' || cameraStatus === 'DENIED'));
+  const micPassed =
+    !micRequired ||
+    micStatus === 'READY' ||
+    (hardwareExemption && (micStatus === 'UNAVAILABLE' || micStatus === 'DENIED'));
   const fullscreenPassed = !fullscreenRequired || fullscreenReady;
-  const isReadyToProceed = browserReady && networkReady && storageReady && cameraPassed && micPassed && fullscreenPassed;
+  const isReadyToProceed =
+    browserReady && networkReady && storageReady && cameraPassed && micPassed && fullscreenPassed;
 
   if (!isOpen) return null;
 
@@ -208,21 +216,37 @@ export default function ExamEnvironmentCheckModal({
                 className="w-full h-full object-cover mirror"
               />
               {cameraStatus !== 'READY' && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-center p-4">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/95 text-center p-4">
                   <Camera className="w-8 h-8 text-slate-500 mb-2" />
-                  <p className="text-sm font-medium text-slate-300">
+                  <p className="text-sm font-medium text-slate-200 max-w-md">
                     {cameraStatus === 'DENIED'
-                      ? 'Camera permission denied. Please allow camera access in your browser settings.'
+                      ? 'Camera permission blocked. Click the lock / tune icon in your browser address bar (top left next to localhost:5173), set Camera to "Allow", and click Re-check Camera.'
                       : cameraStatus === 'UNAVAILABLE'
-                      ? 'No camera device detected on this system.'
-                      : 'Requesting camera stream...'}
+                      ? 'No physical camera device detected on this system.'
+                      : 'Requesting camera stream from browser...'}
                   </p>
-                  <button
-                    onClick={checkCamera}
-                    className="mt-3 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded-lg flex items-center gap-1.5"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" /> Re-check Camera
-                  </button>
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      onClick={checkCamera}
+                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" /> Re-check Camera
+                    </button>
+                    {!hardwareExemption && (cameraStatus === 'UNAVAILABLE' || cameraStatus === 'DENIED') && (
+                      <button
+                        type="button"
+                        onClick={() => setHardwareExemption(true)}
+                        className="text-xs text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        Proceed in Demo / Exempt Mode
+                      </button>
+                    )}
+                  </div>
+                  {hardwareExemption && (
+                    <span className="mt-2 text-xs text-amber-400 font-medium">
+                      ✓ Hardware exemption active (simulated telemetry will be recorded)
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -237,14 +261,55 @@ export default function ExamEnvironmentCheckModal({
                 <Mic className="w-4 h-4 text-cyan-400" />
                 Microphone Input Test
               </span>
-              <span className="text-xs text-slate-400">Speak into your mic to test level</span>
+              <span
+                className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                  micStatus === 'READY'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                }`}
+              >
+                {micStatus === 'READY' ? 'Microphone Active' : micStatus}
+              </span>
             </div>
-            <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-rose-500 transition-all duration-75"
-                style={{ width: `${audioLevel}%` }}
-              />
-            </div>
+
+            {micStatus === 'READY' ? (
+              <div>
+                <p className="text-xs text-slate-400 mb-1.5">Speak into your mic to test input level:</p>
+                <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-rose-500 transition-all duration-75"
+                    style={{ width: `${audioLevel}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-900/80 rounded-lg text-center">
+                <p className="text-xs text-slate-300 mb-2">
+                  {micStatus === 'DENIED'
+                    ? 'Microphone permission blocked. Click the lock icon in your address bar and allow microphone access.'
+                    : micStatus === 'UNAVAILABLE'
+                    ? 'No microphone input device detected.'
+                    : 'Requesting microphone permission from browser...'}
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={checkMicrophone}
+                    className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-xs font-semibold rounded-lg inline-flex items-center gap-1.5 transition"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Re-check Microphone
+                  </button>
+                  {!hardwareExemption && (micStatus === 'UNAVAILABLE' || micStatus === 'DENIED') && (
+                    <button
+                      type="button"
+                      onClick={() => setHardwareExemption(true)}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 underline font-medium"
+                    >
+                      Proceed in Demo / Exempt Mode
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -363,11 +428,21 @@ export default function ExamEnvironmentCheckModal({
           </button>
 
           <button
-            onClick={onPass}
+            onClick={() => {
+              try {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                  elem.requestFullscreen().catch(() => {});
+                } else if (elem.webkitRequestFullscreen) {
+                  elem.webkitRequestFullscreen();
+                }
+              } catch (e) {}
+              onPass();
+            }}
             disabled={!isReadyToProceed}
             className={`px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition shadow-lg ${
               isReadyToProceed
-                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30'
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30 cursor-pointer'
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed'
             }`}
           >

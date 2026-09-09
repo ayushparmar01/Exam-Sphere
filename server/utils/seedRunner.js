@@ -233,7 +233,19 @@ const runSeed = async () => {
       },
     ];
 
-    const createdExams = await Exam.insertMany(examsData);
+    const proctoredExamsData = examsData.map((e) => ({
+      cameraRequired: true,
+      cameraMonitoringEnabled: true,
+      microphoneRequired: true,
+      microphoneMonitoringEnabled: true,
+      fullscreenRequired: true,
+      maxFullscreenExits: 3,
+      facePresenceMonitoringEnabled: true,
+      multipleFaceDetectionEnabled: true,
+      ...e,
+    }));
+
+    const createdExams = await Exam.insertMany(proctoredExamsData);
     console.log(`[Seed] Created ${createdExams.length} Exams.`);
 
     // 5. Pre-seed Completed Peer Attempts on DSA Exam to establish an active Leaderboard

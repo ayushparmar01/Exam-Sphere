@@ -9,7 +9,11 @@ let io = null;
 const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        process.env.CLIENT_URL || 'http://localhost:5173',
+      ],
       methods: ['GET', 'POST', 'PUT'],
       credentials: true,
     },
@@ -23,7 +27,6 @@ const initSocket = (httpServer) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.query?.token;
       if (!token) {
-        // Allow unauthenticated connection only for non-sensitive public ping
         return next();
       }
 
@@ -34,13 +37,12 @@ const initSocket = (httpServer) => {
       }
       next();
     } catch (err) {
-      // Allow connection but without authenticated user context
       next();
     }
   });
 
   io.on('connection', (socket) => {
-    // 1. Join Candidate Exam Attempt Room
+    // Join Candidate Attempt Room
     socket.on('join_attempt', async ({ attemptId }) => {
       if (!attemptId) return;
 
@@ -48,21 +50,17 @@ const initSocket = (httpServer) => {
       socket.join(room);
       socket.attemptId = attemptId;
 
-      // Update attempt connection status
       await ExamAttempt.findByIdAndUpdate(attemptId, {
         $set: { connectionStatus: 'CONNECTED', lastHeartbeat: new Date() },
-      });
+      }).catch(() => {});
 
       socket.emit('joined_room', { room, timestamp: Date.now() });
     });
 
-    // 2. Join Admin Live Monitoring Room for specific exam or platform-wide
+    // Join Admin Live Monitoring Room
     socket.on('join_admin_monitor', ({ examId }) => {
-      // Authorization check: Only ADMIN role can join monitoring rooms
       if (socket.user && socket.user.role === 'ADMIN') {
-        if (examId) {
-          socket.join(`exam:${examId}:monitor`);
-        }
+        if (examId) socket.join(`exam:${examId}:monitor`);
         socket.join('admin:live_monitor');
         socket.emit('joined_monitor', { examId: examId || 'all', status: 'ACTIVE' });
       } else {
@@ -70,19 +68,16 @@ const initSocket = (httpServer) => {
       }
     });
 
-    // 3. Lightweight Client Heartbeat (every 10-15 seconds)
+    // Candidate Heartbeat
     socket.on('heartbeat', async ({ attemptId, currentQuestionIndex, answeredCount }) => {
       if (!attemptId) return;
-
       const now = new Date();
 
-      // Update session in memory / touch DB asynchronously (without hammering Mongo on every tick)
       await ExamSession.updateOne(
         { attemptId },
         { $set: { lastHeartbeat: now } }
       ).catch(() => {});
 
-      // Broadcast candidate status delta to admin room
       if (socket.user) {
         io.to('admin:live_monitor').emit('candidate_heartbeat_delta', {
           attemptId,
@@ -95,16 +90,12 @@ const initSocket = (httpServer) => {
         });
       }
 
-      socket.emit('heartbeat_ack', {
-        serverTime: Date.now(),
-        attemptId,
-      });
+      socket.emit('heartbeat_ack', { serverTime: Date.now(), attemptId });
     });
 
-    // 4. Candidate Device Status Broadcast
+    // Device Status Delta Broadcast
     socket.on('device_status_update', async ({ attemptId, cameraStatus, microphoneStatus }) => {
       if (!attemptId) return;
-
       const updateFields = {};
       if (cameraStatus) updateFields.cameraStatus = cameraStatus;
       if (microphoneStatus) updateFields.microphoneStatus = microphoneStatus;
@@ -117,7 +108,7 @@ const initSocket = (httpServer) => {
       });
     });
 
-    // 5. Handle Disconnect
+    // Disconnect Handler
     socket.on('disconnect', async () => {
       if (socket.attemptId) {
         await ExamAttempt.findByIdAndUpdate(socket.attemptId, {
@@ -136,9 +127,7 @@ const initSocket = (httpServer) => {
 };
 
 const getIO = () => {
-  if (!io) {
-    throw new Error('Socket.IO not initialized');
-  }
+  if (!io) throw new Error('Socket.IO not initialized');
   return io;
 };
 
