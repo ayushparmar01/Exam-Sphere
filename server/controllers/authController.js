@@ -41,14 +41,20 @@ const signup = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Default to STUDENT role unless specifically ADMIN and admin creation key matches
-    const assignedRole = role === 'ADMIN' ? 'ADMIN' : 'STUDENT';
+    // Allow STUDENT, TEACHER, or ADMIN
+    let assignedRole = 'STUDENT';
+    if (role === 'ADMIN') assignedRole = 'ADMIN';
+    else if (role === 'TEACHER') assignedRole = 'TEACHER';
+
+    const { department, designation } = req.body;
 
     const user = await User.create({
       name: name.trim(),
       email: email.toLowerCase().trim(),
       passwordHash,
       role: assignedRole,
+      department: department || '',
+      designation: designation || '',
     });
 
     const token = generateToken(user._id, user.role);

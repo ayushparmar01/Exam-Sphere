@@ -8,6 +8,11 @@ const {
   createQuestion,
   updateQuestion,
   deleteQuestion,
+  duplicateQuestion,
+  archiveQuestion,
+  restoreQuestion,
+  bulkArchiveQuestions,
+  bulkRestoreQuestions,
   bulkUploadQuestions,
 } = require('../controllers/questionController');
 const { verifyJWT } = require('../middleware/authMiddleware');
@@ -35,13 +40,18 @@ const upload = multer({
   },
 });
 
-router.use(verifyJWT, requireRole('ADMIN'));
+router.use(verifyJWT, requireRole('ADMIN', 'TEACHER'));
 
 router.get('/', getQuestions);
 router.get('/:id', getQuestionById);
 router.post('/', createQuestion);
 router.put('/:id', updateQuestion);
 router.delete('/:id', deleteQuestion);
+router.post('/:id/duplicate', duplicateQuestion);
+router.patch('/:id/archive', archiveQuestion);
+router.patch('/:id/restore', restoreQuestion);
+router.post('/bulk-archive', bulkArchiveQuestions);
+router.post('/bulk-restore', bulkRestoreQuestions);
 router.post('/bulk-upload', upload.single('file'), bulkUploadQuestions);
 
 module.exports = router;

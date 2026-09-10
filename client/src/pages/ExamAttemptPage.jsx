@@ -32,6 +32,11 @@ import {
   Minimize,
   Wifi,
   WifiOff,
+  Hash,
+  Type,
+  ToggleLeft,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 
 export const ExamAttemptPage = () => {
@@ -42,7 +47,7 @@ export const ExamAttemptPage = () => {
   const [loading, setLoading] = useState(true);
   const [exam, setExam] = useState(null);
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState([]); // [{ questionId, selectedOption, visited, markedForReview }]
+  const [answers, setAnswers] = useState([]); // [{ questionId, selectedOption, selectedOptions, numericalValue, textAnswer, visited, markedForReview }]
   const [currentIndex, setCurrentIndex] = useState(0);
   const [serverRemainingSeconds, setServerRemainingSeconds] = useState(0);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saving' | 'saved' | 'offline' | 'synced'
@@ -152,7 +157,7 @@ export const ExamAttemptPage = () => {
     fetchSession();
   }, [attemptId, navigate]);
 
-  // Option selection handler with Offline Queue Integration
+  // 1. Single MCQ & True/False option selection handler
   const handleSelectOption = (optionId) => {
     const currentQ = questions[currentIndex];
     if (!currentQ) return;
@@ -175,10 +180,128 @@ export const ExamAttemptPage = () => {
     setAnswers(updatedAnswers);
     setSaveStatus('saving');
 
-    // Enqueue through offline-resilient hook
     enqueueAnswer({
       questionId: currentQ.questionId,
       selectedOption: newSelected,
+      selectedOptions: existingAns?.selectedOptions || [],
+      numericalValue: existingAns?.numericalValue ?? null,
+      textAnswer: existingAns?.textAnswer ?? null,
+      markedForReview: existingAns?.markedForReview || false,
+      visited: true,
+      currentQuestionIndex: currentIndex,
+    }).then(() => {
+      setSaveStatus(isOnline ? 'saved' : 'offline');
+    });
+  };
+
+  // 2. Multiple MCQ option toggle handler
+  const handleToggleMultiOption = (optionId) => {
+    const currentQ = questions[currentIndex];
+    if (!currentQ) return;
+
+    const existingAns = answers.find((a) => a.questionId === currentQ.questionId);
+    const currentList = Array.isArray(existingAns?.selectedOptions) ? [...existingAns.selectedOptions] : [];
+    const idx = currentList.indexOf(optionId);
+    if (idx >= 0) {
+      currentList.splice(idx, 1);
+    } else {
+      currentList.push(optionId);
+    }
+
+    const updatedAnswers = answers.map((ans) => {
+      if (ans.questionId === currentQ.questionId) {
+        return {
+          ...ans,
+          selectedOptions: currentList,
+          visited: true,
+          savedAt: new Date(),
+        };
+      }
+      return ans;
+    });
+
+    setAnswers(updatedAnswers);
+    setSaveStatus('saving');
+
+    enqueueAnswer({
+      questionId: currentQ.questionId,
+      selectedOption: null,
+      selectedOptions: currentList,
+      numericalValue: existingAns?.numericalValue ?? null,
+      textAnswer: existingAns?.textAnswer ?? null,
+      markedForReview: existingAns?.markedForReview || false,
+      visited: true,
+      currentQuestionIndex: currentIndex,
+    }).then(() => {
+      setSaveStatus(isOnline ? 'saved' : 'offline');
+    });
+  };
+
+  // 3. Numerical answer change handler
+  const handleNumericalChange = (rawVal) => {
+    const currentQ = questions[currentIndex];
+    if (!currentQ) return;
+
+    const existingAns = answers.find((a) => a.questionId === currentQ.questionId);
+    const numVal = rawVal === '' || isNaN(Number(rawVal)) ? null : Number(rawVal);
+
+    const updatedAnswers = answers.map((ans) => {
+      if (ans.questionId === currentQ.questionId) {
+        return {
+          ...ans,
+          numericalValue: numVal,
+          visited: true,
+          savedAt: new Date(),
+        };
+      }
+      return ans;
+    });
+
+    setAnswers(updatedAnswers);
+    setSaveStatus('saving');
+
+    enqueueAnswer({
+      questionId: currentQ.questionId,
+      selectedOption: null,
+      selectedOptions: [],
+      numericalValue: numVal,
+      textAnswer: null,
+      markedForReview: existingAns?.markedForReview || false,
+      visited: true,
+      currentQuestionIndex: currentIndex,
+    }).then(() => {
+      setSaveStatus(isOnline ? 'saved' : 'offline');
+    });
+  };
+
+  // 4. Fill in the Blank text answer handler
+  const handleTextAnswerChange = (text) => {
+    const currentQ = questions[currentIndex];
+    if (!currentQ) return;
+
+    const existingAns = answers.find((a) => a.questionId === currentQ.questionId);
+
+    const updatedAnswers = answers.map((ans) => {
+      if (ans.questionId === currentQ.questionId) {
+        return {
+          ...ans,
+          textAnswer: text,
+          visited: true,
+          savedAt: new Date(),
+        };
+      }
+      return ans;
+    });
+
+    setAnswers(updatedAnswers);
+    setSaveStatus('saving');
+
+    enqueueAnswer({
+      questionId: currentQ.questionId,
+      selectedOption: null,
+      selectedOptions: [],
+      numericalValue: null,
+      textAnswer: text,
       markedForReview: existingAns?.markedForReview || false,
       visited: true,
       currentQuestionIndex: currentIndex,
@@ -212,6 +335,9 @@ export const ExamAttemptPage = () => {
     enqueueAnswer({
       questionId: currentQ.questionId,
       selectedOption: existingAns?.selectedOption || null,
+      selectedOptions: existingAns?.selectedOptions || [],
+      numericalValue: existingAns?.numericalValue ?? null,
+      textAnswer: existingAns?.textAnswer ?? null,
       markedForReview: newMarked,
       visited: true,
       currentQuestionIndex: currentIndex,
@@ -231,6 +357,9 @@ export const ExamAttemptPage = () => {
         return {
           ...ans,
           selectedOption: null,
+          selectedOptions: [],
+          numericalValue: null,
+          textAnswer: null,
           visited: true,
         };
       }
@@ -243,6 +372,9 @@ export const ExamAttemptPage = () => {
     enqueueAnswer({
       questionId: currentQ.questionId,
       selectedOption: null,
+      selectedOptions: [],
+      numericalValue: null,
+      textAnswer: null,
       markedForReview: existingAns?.markedForReview || false,
       visited: true,
       currentQuestionIndex: currentIndex,
@@ -315,9 +447,22 @@ export const ExamAttemptPage = () => {
 
   const currentQ = questions[currentIndex];
   const currentAnswer = answers.find((a) => a.questionId === currentQ?.questionId) || {};
-  const answeredCount = answers.filter((a) => a.selectedOption !== null).length;
+  const currentQType = currentQ?.questionType || 'SINGLE_MCQ';
+
+  const isAnswered = (a) => {
+    if (!a) return false;
+    if (a.selectedOption !== null && a.selectedOption !== undefined && a.selectedOption !== '') return true;
+    if (Array.isArray(a.selectedOptions) && a.selectedOptions.length > 0) return true;
+    if (typeof a.numericalValue === 'number' && !isNaN(a.numericalValue)) return true;
+    if (typeof a.textAnswer === 'string' && a.textAnswer.trim().length > 0) return true;
+    return false;
+  };
+
+  const answeredCount = answers.filter(isAnswered).length;
   const markedCount = answers.filter((a) => a.markedForReview).length;
   const unansweredCount = questions.length - answeredCount;
+
+  const currentHasAnswer = isAnswered(currentAnswer);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans select-none">
@@ -425,11 +570,21 @@ export const ExamAttemptPage = () => {
 
           {/* Question Meta Bar */}
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap gap-1">
               <span className="px-3 py-1 rounded-xl bg-indigo-50 text-indigo-700 font-bold text-xs sm:text-sm">
                 Question {currentIndex + 1} of {questions.length}
               </span>
-              <span className="text-xs text-slate-400 font-medium">{currentQ?.topic}</span>
+              <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-lg">
+                {currentQ?.topic}
+              </span>
+              {/* Question Type Badge */}
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 flex items-center gap-1">
+                {currentQType === 'SINGLE_MCQ' && 'Single Choice MCQ'}
+                {currentQType === 'MULTIPLE_MCQ' && 'Multiple Choice (Select all)'}
+                {currentQType === 'TRUE_FALSE' && 'True / False'}
+                {currentQType === 'NUMERICAL' && 'Numerical Value'}
+                {currentQType === 'FILL_BLANK' && 'Fill in the Blank'}
+              </span>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -450,39 +605,162 @@ export const ExamAttemptPage = () => {
               {currentQ?.questionText}
             </div>
 
-            {/* Options List */}
-            <div className="space-y-3 pt-2">
-              {currentQ?.options?.map((opt) => {
-                const isSelected = currentAnswer.selectedOption === opt.id;
-                return (
-                  <div
-                    key={opt.id}
-                    onClick={() => handleSelectOption(opt.id)}
-                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-4 select-none ${
-                      isSelected
-                        ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 shadow-sm'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/70 text-slate-800'
-                    }`}
-                  >
-                    <span
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 transition-all ${
+            {/* Render Question Input according to Question Type */}
+
+            {/* TYPE 1: SINGLE_MCQ */}
+            {currentQType === 'SINGLE_MCQ' && (
+              <div className="space-y-3 pt-2">
+                {currentQ?.options?.map((opt) => {
+                  const isSelected = currentAnswer.selectedOption === opt.id;
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => handleSelectOption(opt.id)}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-4 select-none ${
                         isSelected
-                          ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                          : 'bg-slate-100 text-slate-700'
+                          ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 shadow-sm'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/70 text-slate-800'
                       }`}
                     >
-                      {opt.id}
-                    </span>
-                    <span className="text-xs sm:text-sm font-medium leading-normal flex-1">
-                      {opt.text}
-                    </span>
-                    {isSelected && (
-                      <CheckCircle2 className="w-5 h-5 text-indigo-600 flex-shrink-0" />
-                    )}
+                      <span
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {opt.id}
+                      </span>
+                      <span className="text-xs sm:text-sm font-medium leading-normal flex-1">
+                        {opt.text}
+                      </span>
+                      {isSelected && (
+                        <CheckCircle2 className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TYPE 2: MULTIPLE_MCQ */}
+            {currentQType === 'MULTIPLE_MCQ' && (
+              <div className="space-y-3 pt-2">
+                <p className="text-xs text-slate-500 italic">
+                  💡 Multiple choices may be correct. Check all applicable options.
+                </p>
+                {currentQ?.options?.map((opt) => {
+                  const isSelected = Array.isArray(currentAnswer.selectedOptions) && currentAnswer.selectedOptions.includes(opt.id);
+                  return (
+                    <div
+                      key={opt.id}
+                      onClick={() => handleToggleMultiOption(opt.id)}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center gap-4 select-none ${
+                        isSelected
+                          ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 shadow-sm'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/70 text-slate-800'
+                      }`}
+                    >
+                      <div
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${
+                          isSelected
+                            ? 'bg-indigo-600 border-indigo-600 text-white'
+                            : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-transparent" />}
+                      </div>
+                      <span className="font-bold text-xs text-slate-700 w-5">{opt.id}.</span>
+                      <span className="text-xs sm:text-sm font-medium leading-normal flex-1">
+                        {opt.text}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TYPE 3: TRUE_FALSE */}
+            {currentQType === 'TRUE_FALSE' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                {[
+                  { id: 'T', label: 'True', sub: 'The statement is factually correct' },
+                  { id: 'F', label: 'False', sub: 'The statement is incorrect or false' },
+                ].map((item) => {
+                  const isSelected = currentAnswer.selectedOption === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectOption(item.id)}
+                      className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between select-none ${
+                        isSelected
+                          ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 shadow-md ring-2 ring-indigo-300'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-base font-bold ${isSelected ? 'text-indigo-700' : 'text-slate-800'}`}>
+                          {item.label}
+                        </span>
+                        {isSelected && <CheckCircle2 className="w-5 h-5 text-indigo-600" />}
+                      </div>
+                      <span className="text-xs text-slate-500">{item.sub}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TYPE 4: NUMERICAL */}
+            {currentQType === 'NUMERICAL' && (
+              <div className="space-y-4 pt-2 max-w-lg">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                    Enter Numerical Value
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="e.g. 42 or 3.14"
+                      value={currentAnswer.numericalValue !== null && currentAnswer.numericalValue !== undefined ? currentAnswer.numericalValue : ''}
+                      onChange={(e) => handleNumericalChange(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 font-mono text-base font-semibold outline-none"
+                    />
+                    <Hash className="w-5 h-5 text-slate-400 absolute right-3 top-3.5 pointer-events-none" />
                   </div>
-                );
-              })}
-            </div>
+                  {currentQ?.numericalTolerance !== undefined && currentQ?.numericalTolerance > 0 && (
+                    <span className="inline-block text-[11px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded">
+                      Accepted Tolerance: ±{currentQ.numericalTolerance}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TYPE 5: FILL_BLANK */}
+            {currentQType === 'FILL_BLANK' && (
+              <div className="space-y-4 pt-2 max-w-lg">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                    Type Your Answer
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Enter word or phrase..."
+                      value={currentAnswer.textAnswer || ''}
+                      onChange={(e) => handleTextAnswerChange(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 font-medium text-sm outline-none"
+                    />
+                    <Type className="w-5 h-5 text-slate-400 absolute right-3 top-3.5 pointer-events-none" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 italic">
+                    Note: Answers are evaluated case-insensitively.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Question Bottom Controls */}
@@ -500,7 +778,7 @@ export const ExamAttemptPage = () => {
                 <span>{currentAnswer.markedForReview ? 'Marked for Review' : 'Mark for Review'}</span>
               </button>
 
-              {currentAnswer.selectedOption && (
+              {currentHasAnswer && (
                 <button
                   onClick={handleClearChoice}
                   className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition flex items-center gap-1"
@@ -587,3 +865,5 @@ export const ExamAttemptPage = () => {
     </div>
   );
 };
+
+export default ExamAttemptPage;

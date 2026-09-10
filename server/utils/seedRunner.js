@@ -35,6 +35,8 @@ const runSeed = async () => {
     const adminPasswordHash = await bcrypt.hash('Admin@123', salt);
     const studentPasswordHash = await bcrypt.hash('Student@123', salt);
 
+    const teacherPasswordHash = await bcrypt.hash('Teacher@123', salt);
+
     const admin = await User.create({
       name: 'ExamSphere Administrator',
       email: 'admin@examsphere.com',
@@ -43,7 +45,18 @@ const runSeed = async () => {
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     });
 
-    // 2. Create Students
+    // 2. Create Teacher
+    const teacher = await User.create({
+      name: 'Prof. Alan Turing',
+      email: 'teacher@examsphere.com',
+      passwordHash: teacherPasswordHash,
+      role: 'TEACHER',
+      department: 'Computer Science & Engineering',
+      designation: 'Associate Professor',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    });
+
+    // 3. Create Students
     const student = await User.create({
       name: 'Alex Rivera',
       email: 'student@examsphere.com',
@@ -83,12 +96,12 @@ const runSeed = async () => {
       },
     ]);
 
-    console.log(`[Seed] Created 1 Admin and ${peers.length + 1} Students.`);
+    console.log(`[Seed] Created 1 Admin, 1 Teacher, and ${peers.length + 1} Students.`);
 
-    // 3. Insert Questions
-    const questionsToInsert = sampleQuestions.map((q) => ({
+    // 4. Insert Questions with dual ownership (Admin & Teacher)
+    const questionsToInsert = sampleQuestions.map((q, idx) => ({
       ...q,
-      createdBy: admin._id,
+      createdBy: idx % 2 === 0 ? teacher._id : admin._id,
       status: 'Active',
       version: 1,
     }));
@@ -233,17 +246,58 @@ const runSeed = async () => {
       },
     ];
 
-    const proctoredExamsData = examsData.map((e) => ({
-      cameraRequired: true,
-      cameraMonitoringEnabled: true,
-      microphoneRequired: true,
-      microphoneMonitoringEnabled: true,
-      fullscreenRequired: true,
-      maxFullscreenExits: 3,
-      facePresenceMonitoringEnabled: true,
-      multipleFaceDetectionEnabled: true,
-      ...e,
-    }));
+    const proctoredExamsData = examsData.map((e, idx) => {
+      const qDocs = insertedQuestions.filter((q) => e.questions.some((eqId) => eqId.toString() === q._id.toString()));
+      const snapshot = {
+        frozenAt: new Date(),
+        questions: qDocs.map((q) => ({
+          questionId: q._id.toString(),
+          version: 1,
+          questionText: q.questionText,
+          questionType: q.questionType || 'SINGLE_MCQ',
+          options: q.options || [],
+          correctAnswer: q.correctAnswer || '',
+          correctAnswers: q.correctAnswers || [],
+          acceptedAnswers: q.acceptedAnswers || [],
+          numericalAnswer: typeof q.numericalAnswer === 'number' ? q.numericalAnswer : null,
+          numericalTolerance: q.numericalTolerance || 0,
+          explanation: q.explanation || '',
+          subject: q.subject,
+          topic: q.topic,
+          difficulty: q.difficulty || 'Medium',
+          marks: q.marks || 1,
+          negativeMarks: e.negativeMarking ? (e.negativeMarkPenalty || 0.25) : 0,
+        })),
+        rules: {
+          duration: e.duration,
+          totalMarks: e.totalMarks,
+          passingPercentage: e.passingPercentage,
+          negativeMarking: e.negativeMarking,
+          negativeMarkPenalty: e.negativeMarkPenalty,
+          maximumAttempts: e.maximumAttempts,
+          allowRetake: e.allowRetake,
+          randomizeQuestions: e.randomizeQuestions,
+          randomizeOptions: e.randomizeOptions,
+          cameraRequired: true,
+          microphoneRequired: true,
+          fullscreenRequired: true,
+        },
+      };
+
+      return {
+        cameraRequired: true,
+        cameraMonitoringEnabled: true,
+        microphoneRequired: true,
+        microphoneMonitoringEnabled: true,
+        fullscreenRequired: true,
+        maxFullscreenExits: 3,
+        facePresenceMonitoringEnabled: true,
+        multipleFaceDetectionEnabled: true,
+        snapshot,
+        ...e,
+        createdBy: idx % 2 === 0 ? teacher._id : admin._id,
+      };
+    });
 
     const createdExams = await Exam.insertMany(proctoredExamsData);
     console.log(`[Seed] Created ${createdExams.length} Exams.`);

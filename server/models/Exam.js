@@ -75,9 +75,34 @@ const examSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['DRAFT', 'SCHEDULED', 'LIVE', 'ENDED', 'ARCHIVED'],
-      default: 'LIVE',
+      enum: ['DRAFT', 'SCHEDULED', 'LIVE', 'PAUSED', 'ENDED', 'PUBLISHED', 'ARCHIVED'],
+      default: 'DRAFT',
       index: true,
+    },
+    // Question Distribution Configuration
+    questionDistribution: {
+      type: String,
+      enum: ['FIXED', 'RANDOM', 'TOPIC_WISE', 'DIFFICULTY_WISE'],
+      default: 'FIXED',
+    },
+    distributionConfig: {
+      easyPercent: { type: Number, default: 30 },
+      mediumPercent: { type: Number, default: 50 },
+      hardPercent: { type: Number, default: 20 },
+      topicDistribution: { type: Map, of: Number, default: {} },
+    },
+    // Specific Students Assigned to this Exam (empty array = all eligible students)
+    assignedStudents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    // Immutable frozen question & rule snapshot generated when published
+    snapshot: {
+      frozenAt: { type: Date },
+      questions: [mongoose.Schema.Types.Mixed],
+      rules: { type: mongoose.Schema.Types.Mixed },
     },
     // Result Visibility Settings
     showResultImmediately: {
@@ -170,10 +195,11 @@ const examSchema = new mongoose.Schema(
 );
 
 examSchema.index({ status: 1, startTime: 1, endTime: 1 });
+examSchema.index({ createdBy: 1, status: 1 });
 
 // Helper to determine server-authoritative live status
 examSchema.methods.getComputedStatus = function () {
-  if (this.status === 'DRAFT' || this.status === 'ARCHIVED') {
+  if (this.status === 'DRAFT' || this.status === 'ARCHIVED' || this.status === 'PAUSED') {
     return this.status;
   }
   const now = new Date();

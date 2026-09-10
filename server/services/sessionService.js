@@ -81,8 +81,14 @@ const startOrResumeSession = async ({ studentId, examId, ipAddress = '', userAge
     throw new Error('This exam currently has no questions assigned.');
   }
 
-  // 3. Freeze immutable question snapshots from the Question collection
-  const rawQuestions = exam.questions.filter((q) => q && q.status !== 'Archived');
+  // 3. Freeze immutable question snapshots from exam snapshot or questions collection
+  let rawQuestions = [];
+  if (exam.snapshot && Array.isArray(exam.snapshot.questions) && exam.snapshot.questions.length > 0) {
+    rawQuestions = exam.snapshot.questions;
+  } else if (exam.questions && exam.questions.length > 0) {
+    rawQuestions = exam.questions.filter((q) => q && q.status !== 'Archived');
+  }
+
   if (rawQuestions.length === 0) {
     throw new Error('No active questions found for this exam.');
   }
@@ -98,11 +104,11 @@ const startOrResumeSession = async ({ studentId, examId, ipAddress = '', userAge
   const initialAnswers = [];
 
   for (const q of questionsToUse) {
-    const qIdStr = q._id.toString();
+    const qIdStr = (q._id || q.questionId).toString();
     questionOrder.push(qIdStr);
 
-    let options = [...q.options];
-    if (exam.randomizeOptions) {
+    let options = Array.isArray(q.options) ? [...q.options] : [];
+    if (exam.randomizeOptions && options.length > 1) {
       options = shuffleArray(options);
     }
     const optIds = options.map((o) => o.id);
@@ -112,12 +118,18 @@ const startOrResumeSession = async ({ studentId, examId, ipAddress = '', userAge
       questionId: qIdStr,
       version: q.version || 1,
       questionText: q.questionText,
+      questionType: q.questionType || 'SINGLE_MCQ',
       options: options.map((o) => ({ id: o.id, text: o.text })),
-      correctAnswer: q.correctAnswer, // Strictly preserved server-side in snapshot
-      explanation: q.explanation,
+      correctAnswer: q.correctAnswer || '',
+      correctAnswers: q.correctAnswers || [],
+      acceptedAnswers: q.acceptedAnswers || [],
+      numericalAnswer: typeof q.numericalAnswer === 'number' ? q.numericalAnswer : null,
+      numericalTolerance: q.numericalTolerance || 0,
+      explanation: q.explanation || '',
       subject: q.subject,
       topic: q.topic,
-      difficulty: q.difficulty,
+      subtopic: q.subtopic || '',
+      difficulty: q.difficulty || 'Medium',
       marks: q.marks || 1,
       negativeMarks: exam.negativeMarking ? (exam.negativeMarkPenalty || 0.25) : 0,
     });
@@ -125,6 +137,9 @@ const startOrResumeSession = async ({ studentId, examId, ipAddress = '', userAge
     initialAnswers.push({
       questionId: qIdStr,
       selectedOption: null,
+      selectedOptions: [],
+      numericalValue: null,
+      textAnswer: null,
       visited: false,
       markedForReview: false,
       savedAt: new Date(),

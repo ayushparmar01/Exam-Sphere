@@ -138,7 +138,17 @@ const getAttemptSession = async (req, res, next) => {
 // @route   PUT /api/attempts/:id/answer
 const saveAnswer = async (req, res, next) => {
   try {
-    const { questionId, selectedOption, markedForReview, visited, currentQuestionIndex, clientTimestamp } = req.body;
+    const {
+      questionId,
+      selectedOption,
+      selectedOptions,
+      numericalValue,
+      textAnswer,
+      markedForReview,
+      visited,
+      currentQuestionIndex,
+      clientTimestamp,
+    } = req.body;
     const attemptId = req.params.id;
 
     const attempt = await ExamAttempt.findOne({
@@ -159,6 +169,9 @@ const saveAnswer = async (req, res, next) => {
       answerObj = {
         questionId,
         selectedOption: null,
+        selectedOptions: [],
+        numericalValue: null,
+        textAnswer: null,
         visited: true,
         markedForReview: false,
         savedAt: new Date(),
@@ -178,6 +191,15 @@ const saveAnswer = async (req, res, next) => {
 
     if (selectedOption !== undefined) {
       answerObj.selectedOption = selectedOption;
+    }
+    if (selectedOptions !== undefined) {
+      answerObj.selectedOptions = Array.isArray(selectedOptions) ? selectedOptions : [];
+    }
+    if (numericalValue !== undefined) {
+      answerObj.numericalValue = typeof numericalValue === 'number' && !isNaN(numericalValue) ? numericalValue : null;
+    }
+    if (textAnswer !== undefined) {
+      answerObj.textAnswer = typeof textAnswer === 'string' ? textAnswer : null;
     }
     if (markedForReview !== undefined) {
       answerObj.markedForReview = !!markedForReview;
@@ -201,11 +223,16 @@ const saveAnswer = async (req, res, next) => {
       { $set: { lastHeartbeat: new Date() } }
     ).catch(() => {});
 
-    // Broadcast candidate progress update to admin room
+    // Broadcast candidate progress update to admin & exam monitor rooms
     try {
       const io = getIO();
-      const answeredCount = attempt.answers.filter((a) => a.selectedOption !== null).length;
-      io.to('admin:live_monitor').emit('candidate_progress_delta', {
+      const answeredCount = attempt.answers.filter((a) =>
+        a.selectedOption !== null ||
+        (Array.isArray(a.selectedOptions) && a.selectedOptions.length > 0) ||
+        a.numericalValue !== null ||
+        (typeof a.textAnswer === 'string' && a.textAnswer.trim().length > 0)
+      ).length;
+      io.to('admin:live_monitor').to(`exam:${attempt.examId}:monitor`).emit('candidate_progress_delta', {
         attemptId: attempt._id,
         currentQuestionIndex: attempt.currentQuestionIndex,
         answeredCount,
@@ -248,13 +275,25 @@ const syncBatchAnswers = async (req, res, next) => {
     const now = new Date();
 
     answers.forEach((queuedItem) => {
-      const { questionId, selectedOption, markedForReview, visited, clientTimestamp } = queuedItem;
+      const {
+        questionId,
+        selectedOption,
+        selectedOptions,
+        numericalValue,
+        textAnswer,
+        markedForReview,
+        visited,
+        clientTimestamp,
+      } = queuedItem;
       let existing = attempt.answers.find((a) => a.questionId === questionId);
 
       if (!existing) {
         existing = {
           questionId,
-          selectedOption,
+          selectedOption: selectedOption !== undefined ? selectedOption : null,
+          selectedOptions: Array.isArray(selectedOptions) ? selectedOptions : [],
+          numericalValue: typeof numericalValue === 'number' && !isNaN(numericalValue) ? numericalValue : null,
+          textAnswer: typeof textAnswer === 'string' ? textAnswer : null,
           markedForReview: !!markedForReview,
           visited: !!visited,
           savedAt: now,
@@ -266,6 +305,9 @@ const syncBatchAnswers = async (req, res, next) => {
         // Only update if queued timestamp is newer or existing timestamp is not set
         if (!existing.clientTimestamp || (clientTimestamp && clientTimestamp >= existing.clientTimestamp)) {
           if (selectedOption !== undefined) existing.selectedOption = selectedOption;
+          if (selectedOptions !== undefined) existing.selectedOptions = Array.isArray(selectedOptions) ? selectedOptions : [];
+          if (numericalValue !== undefined) existing.numericalValue = typeof numericalValue === 'number' && !isNaN(numericalValue) ? numericalValue : null;
+          if (textAnswer !== undefined) existing.textAnswer = typeof textAnswer === 'string' ? textAnswer : null;
           if (markedForReview !== undefined) existing.markedForReview = !!markedForReview;
           if (visited !== undefined) existing.visited = !!visited;
           existing.savedAt = now;

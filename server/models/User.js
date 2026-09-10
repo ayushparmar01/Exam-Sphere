@@ -24,9 +24,19 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['STUDENT', 'ADMIN'],
+      enum: ['STUDENT', 'TEACHER', 'ADMIN'],
       default: 'STUDENT',
       index: true,
+    },
+    department: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    designation: {
+      type: String,
+      trim: true,
+      default: '',
     },
     avatar: {
       type: String,

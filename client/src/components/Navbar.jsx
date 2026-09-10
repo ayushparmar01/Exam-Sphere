@@ -18,10 +18,14 @@ import {
   LayoutDashboard,
   Settings,
   Activity,
+  PlusCircle,
+  FileCheck,
+  BarChart3,
+  GraduationCap,
 } from 'lucide-react';
 
 export const Navbar = () => {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isTeacher, logout } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,16 +63,57 @@ export const Navbar = () => {
     navigate('/');
   };
 
-  const navLinks = [
+  let navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Exams', path: '/exams' },
-    ...(isAuthenticated && !isAdmin ? [{ name: 'My Exams', path: '/my-exams' }] : []),
-    ...(isAuthenticated && isAdmin ? [{ name: 'Live Proctoring', path: '/admin/monitoring', isLive: true }] : []),
     { name: 'Leaderboard', path: '/leaderboard' },
     { name: 'Schedule', path: '/schedule' },
-    ...(isAuthenticated && !isAdmin ? [{ name: 'Analytics', path: '/analytics' }] : []),
-    ...(isAuthenticated && !isAdmin ? [{ name: 'Mistakes', path: '/mistakes' }] : []),
   ];
+
+  if (isAuthenticated) {
+    if (isTeacher) {
+      navLinks = [
+        { name: 'Dashboard', path: '/teacher/dashboard' },
+        { name: 'Question Bank', path: '/teacher/questions' },
+        { name: 'Create Exam', path: '/teacher/exams/create' },
+        { name: 'My Exams', path: '/teacher/exams' },
+        { name: 'Live Proctoring', path: '/admin/monitoring', isLive: true },
+        { name: 'Results', path: '/teacher/results' },
+        { name: 'Analytics', path: '/teacher/analytics' },
+      ];
+    } else if (isAdmin) {
+      navLinks = [
+        { name: 'Home', path: '/' },
+        { name: 'Exams', path: '/exams' },
+        { name: 'Live Proctoring', path: '/admin/monitoring', isLive: true },
+        { name: 'Leaderboard', path: '/leaderboard' },
+        { name: 'Schedule', path: '/schedule' },
+      ];
+    } else {
+      // Student
+      navLinks = [
+        { name: 'Home', path: '/' },
+        { name: 'Exams', path: '/exams' },
+        { name: 'My Exams', path: '/my-exams' },
+        { name: 'Leaderboard', path: '/leaderboard' },
+        { name: 'Schedule', path: '/schedule' },
+        { name: 'Analytics', path: '/analytics' },
+        { name: 'Mistakes', path: '/mistakes' },
+      ];
+    }
+  }
+
+  const getDashboardPath = () => {
+    if (isAdmin) return '/admin/dashboard';
+    if (isTeacher) return '/teacher/dashboard';
+    return '/dashboard';
+  };
+
+  const getRoleLabel = () => {
+    if (isAdmin) return 'Administrator';
+    if (isTeacher) return 'Faculty / Teacher';
+    return 'Student';
+  };
 
   return (
     <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
@@ -86,7 +131,7 @@ export const Navbar = () => {
             </Link>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex ml-10 space-x-1">
+            <div className="hidden md:flex ml-8 space-x-1">
               {navLinks.map((link) => {
                 const isActive = location.pathname === link.path;
                 return (
@@ -115,25 +160,23 @@ export const Navbar = () => {
               <>
                 {/* Dashboard Quick Link */}
                 <Link
-                  to={isAdmin ? '/admin/dashboard' : '/dashboard'}
+                  to={getDashboardPath()}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-700 hover:text-indigo-600 hover:bg-slate-50 rounded-lg border border-slate-200"
                 >
-                  <LayoutDashboard className="w-4 h-4" />
-                  {isAdmin ? 'Admin Console' : 'Dashboard'}
+                  <LayoutDashboard className="w-4 h-4 text-slate-500" />
+                  <span>Dashboard</span>
                 </Link>
 
                 {/* Notifications Bell */}
                 <div className="relative" ref={notifRef}>
                   <button
                     onClick={() => setNotificationsOpen(!notificationsOpen)}
-                    className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-                    aria-label="Notifications"
+                    className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition relative"
+                    aria-label="View notifications"
                   >
                     <Bell className="w-5 h-5" />
                     {unreadCount > 0 && (
-                      <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </span>
+                      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-indigo-600" />
                     )}
                   </button>
 
@@ -214,13 +257,16 @@ export const Navbar = () => {
                   </button>
 
                   {profileDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
+                    <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
                       <div className="px-4 py-2 border-b border-slate-100">
                         <p className="text-xs text-slate-400">Signed in as</p>
                         <p className="text-sm font-semibold text-slate-800 truncate">{user?.email}</p>
                         <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">
-                          {user?.role === 'ADMIN' ? 'Administrator' : 'Student'}
+                          {getRoleLabel()}
                         </span>
+                        {user?.department && (
+                          <p className="text-[11px] text-slate-500 mt-0.5">{user.department}</p>
+                        )}
                       </div>
 
                       <Link
@@ -239,6 +285,55 @@ export const Navbar = () => {
                         Account Settings
                       </Link>
 
+                      {/* Teacher Quick Tools */}
+                      {isTeacher && (
+                        <div className="border-t border-slate-100 my-1 pt-1">
+                          <Link
+                            to="/teacher/questions"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <BookOpen className="w-4 h-4 text-slate-400" />
+                            Question Bank
+                          </Link>
+                          <Link
+                            to="/teacher/exams/create"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <PlusCircle className="w-4 h-4 text-slate-400" />
+                            Create Exam
+                          </Link>
+                          <Link
+                            to="/teacher/exams"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <Shield className="w-4 h-4 text-slate-400" />
+                            My Exams
+                          </Link>
+                          <Link
+                            to="/admin/monitoring"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-indigo-600 font-semibold hover:bg-indigo-50"
+                          >
+                            <Activity className="w-4 h-4 text-indigo-600 animate-pulse" />
+                            Live Proctoring Center
+                          </Link>
+                          <Link
+                            to="/teacher/results"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <FileCheck className="w-4 h-4 text-slate-400" />
+                            Student Results
+                          </Link>
+                          <Link
+                            to="/teacher/analytics"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <BarChart3 className="w-4 h-4 text-slate-400" />
+                            Exam Analytics
+                          </Link>
+                        </div>
+                      )}
+
+                      {/* Admin Quick Tools */}
                       {isAdmin && (
                         <div className="border-t border-slate-100 my-1 pt-1">
                           <Link
@@ -268,9 +363,9 @@ export const Navbar = () => {
                       <div className="border-t border-slate-100 my-1 pt-1">
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition text-left"
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition"
                         >
-                          <LogOut className="w-4 h-4 text-rose-500" />
+                          <LogOut className="w-4 h-4" />
                           Sign Out
                         </button>
                       </div>
@@ -279,28 +374,40 @@ export const Navbar = () => {
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-indigo-600 transition"
+                  className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition"
                 >
-                  Log In
+                  Sign In
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm shadow-indigo-200 transition"
                 >
-                  Get Started
+                  Register
                 </Link>
               </div>
             )}
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center">
+          <div className="flex md:hidden items-center gap-2">
+            {isAuthenticated && (
+              <button
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="p-2 text-slate-600 relative"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-indigo-600" />
+                )}
+              </button>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -308,58 +415,76 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-100"
-            >
-              {link.name}
-            </Link>
-          ))}
+        <div className="md:hidden border-b border-slate-200 bg-white px-4 pt-2 pb-6 space-y-1">
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.path;
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`block px-3 py-2 rounded-lg text-base font-medium ${
+                  isActive
+                    ? 'text-indigo-600 bg-indigo-50 font-semibold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {link.name}
+              </Link>
+            );
+          })}
 
-          {isAuthenticated ? (
-            <div className="border-t border-slate-200 pt-3 space-y-2">
-              <Link
-                to={isAdmin ? '/admin/dashboard' : '/dashboard'}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-indigo-600 bg-indigo-50"
-              >
-                {isAdmin ? 'Admin Console' : 'Student Dashboard'}
-              </Link>
-              <Link
-                to="/profile"
-                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-100"
-              >
-                Profile & Settings
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-rose-600 hover:bg-rose-50"
-              >
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <div className="border-t border-slate-200 pt-4 flex flex-col gap-2">
-              <Link
-                to="/login"
-                className="w-full text-center px-4 py-2 border border-slate-300 rounded-xl text-sm font-semibold text-slate-700"
-              >
-                Log In
-              </Link>
-              <Link
-                to="/signup"
-                className="w-full text-center px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow"
-              >
-                Get Started
-              </Link>
-            </div>
-          )}
+          <div className="pt-4 border-t border-slate-100">
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                <div className="px-3 py-2">
+                  <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
+                  <p className="text-xs text-slate-500">{user?.email}</p>
+                  <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">
+                    {getRoleLabel()}
+                  </span>
+                </div>
+                <Link
+                  to={getDashboardPath()}
+                  className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/profile"
+                  className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  My Profile
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm text-rose-600 font-semibold hover:bg-rose-50"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <Link
+                  to="/login"
+                  className="w-full py-2.5 text-center text-sm font-semibold text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="w-full py-2.5 text-center text-sm font-semibold text-white bg-indigo-600 rounded-lg shadow-sm"
+                >
+                  Register
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>
   );
 };
+
+export default Navbar;

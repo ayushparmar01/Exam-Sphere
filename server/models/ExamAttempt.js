@@ -45,14 +45,23 @@ const examAttemptSchema = new mongoose.Schema(
         questionId: { type: String, required: true },
         version: { type: Number, default: 1 },
         questionText: { type: String, required: true },
+        questionType: {
+          type: String,
+          enum: ['SINGLE_MCQ', 'MULTIPLE_MCQ', 'TRUE_FALSE', 'NUMERICAL', 'FILL_BLANK'],
+          default: 'SINGLE_MCQ',
+        },
         options: [
           {
             id: { type: String, required: true },
             text: { type: String, required: true },
           },
         ],
-        correctAnswer: { type: String, required: true }, // Kept secure on server
-        explanation: { type: String, required: true },
+        correctAnswer: { type: String, default: '' },
+        correctAnswers: [{ type: String }],
+        acceptedAnswers: [{ type: String }],
+        numericalAnswer: { type: Number, default: null },
+        numericalTolerance: { type: Number, default: 0 },
+        explanation: { type: String, default: '' },
         subject: { type: String, required: true },
         topic: { type: String, required: true },
         difficulty: { type: String, default: 'Medium' },
@@ -71,7 +80,10 @@ const examAttemptSchema = new mongoose.Schema(
     answers: [
       {
         questionId: { type: String, required: true },
-        selectedOption: { type: String, default: null }, // e.g. 'A' or null
+        selectedOption: { type: String, default: null }, // e.g. 'A' or null (Single MCQ, TF)
+        selectedOptions: [{ type: String }], // e.g. ['A', 'C'] (Multiple MCQ)
+        numericalValue: { type: Number, default: null }, // e.g. 42.5 (Numerical)
+        textAnswer: { type: String, default: null }, // e.g. 'TCP' (Fill in Blank)
         visited: { type: Boolean, default: false },
         markedForReview: { type: Boolean, default: false },
         savedAt: { type: Date, default: Date.now },
@@ -85,6 +97,19 @@ const examAttemptSchema = new mongoose.Schema(
     timeSpentSeconds: {
       type: Number,
       default: 0,
+    },
+    // Device & Proctoring State Tracking
+    cameraState: {
+      type: String,
+      enum: ['CAMERA_READY', 'CAMERA_ACTIVE', 'CAMERA_INTERRUPTED', 'CAMERA_RESTORED', 'CAMERA_DENIED'],
+      default: 'CAMERA_READY',
+      index: true,
+    },
+    microphoneState: {
+      type: String,
+      enum: ['MIC_READY', 'MIC_ACTIVE', 'MIC_INTERRUPTED', 'MIC_RESTORED', 'MIC_DENIED'],
+      default: 'MIC_READY',
+      index: true,
     },
     // Proctoring & Integrity Telemetry State
     integrityRiskScore: {

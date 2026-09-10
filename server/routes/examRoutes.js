@@ -22,10 +22,10 @@ const optionalAuth = (req, res, next) => {
 router.get('/', optionalAuth, getExams);
 router.get('/:id', optionalAuth, getExamById);
 
-// Admin-only routes
-router.post('/', verifyJWT, requireRole('ADMIN'), createExam);
-router.put('/:id', verifyJWT, requireRole('ADMIN'), updateExam);
-router.patch('/:id/publish', verifyJWT, requireRole('ADMIN'), togglePublish);
-router.delete('/:id', verifyJWT, requireRole('ADMIN'), deleteExam);
+// Admin & Teacher management routes
+router.post('/', verifyJWT, requireRole('ADMIN', 'TEACHER'), createExam);
+router.put('/:id', verifyJWT, requireRole('ADMIN', 'TEACHER'), updateExam);
+router.patch('/:id/publish', verifyJWT, requireRole('ADMIN', 'TEACHER'), togglePublish);
+router.delete('/:id', verifyJWT, requireRole('ADMIN', 'TEACHER'), deleteExam);
 
 module.exports = router;

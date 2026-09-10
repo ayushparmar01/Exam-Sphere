@@ -8,7 +8,7 @@ const calculateResultData = ({ attempt, exam }) => {
 
   // Index student's submitted answers
   attempt.answers.forEach((ans) => {
-    studentAnswersMap.set(ans.questionId, ans.selectedOption);
+    studentAnswersMap.set(ans.questionId, ans);
   });
 
   let totalMarks = 0;
@@ -26,9 +26,50 @@ const calculateResultData = ({ attempt, exam }) => {
     const negativeMarks = q.negativeMarks || 0;
     totalMarks += marks;
 
-    const selectedOption = studentAnswersMap.get(q.questionId) || null;
-    const isUnattempted = !selectedOption;
-    const isCorrect = !isUnattempted && selectedOption === q.correctAnswer;
+    const studentAns = studentAnswersMap.get(q.questionId) || {};
+    const selectedOption = studentAns.selectedOption || null;
+    const selectedOptions = Array.isArray(studentAns.selectedOptions) ? studentAns.selectedOptions : [];
+    const numericalValue = typeof studentAns.numericalValue === 'number' && !isNaN(studentAns.numericalValue) ? studentAns.numericalValue : null;
+    const textAnswer = typeof studentAns.textAnswer === 'string' ? studentAns.textAnswer.trim() : null;
+
+    let isUnattempted = true;
+    let isCorrect = false;
+    const qType = q.questionType || 'SINGLE_MCQ';
+
+    if (qType === 'MULTIPLE_MCQ') {
+      isUnattempted = selectedOptions.length === 0;
+      if (!isUnattempted) {
+        const correctSet = new Set((q.correctAnswers || []).map((a) => String(a).trim().toUpperCase()));
+        const studentSet = new Set(selectedOptions.map((a) => String(a).trim().toUpperCase()));
+        if (correctSet.size > 0 && correctSet.size === studentSet.size) {
+          isCorrect = [...studentSet].every((val) => correctSet.has(val));
+        }
+      }
+    } else if (qType === 'NUMERICAL') {
+      isUnattempted = numericalValue === null;
+      if (!isUnattempted) {
+        const target = Number(q.numericalAnswer);
+        const tolerance = Math.max(0, Number(q.numericalTolerance) || 0);
+        isCorrect = Math.abs(numericalValue - target) <= tolerance;
+      }
+    } else if (qType === 'FILL_BLANK') {
+      isUnattempted = !textAnswer || textAnswer.length === 0;
+      if (!isUnattempted) {
+        const normalizedStudent = textAnswer.toLowerCase();
+        const validList = [
+          ...(q.acceptedAnswers || []).map((a) => String(a).trim().toLowerCase()),
+          String(q.correctAnswer || '').trim().toLowerCase(),
+        ].filter(Boolean);
+        isCorrect = validList.includes(normalizedStudent);
+      }
+    } else {
+      // SINGLE_MCQ or TRUE_FALSE
+      isUnattempted = !selectedOption;
+      if (!isUnattempted) {
+        isCorrect = String(selectedOption).trim().toUpperCase() === String(q.correctAnswer).trim().toUpperCase();
+      }
+    }
+
     const isIncorrect = !isUnattempted && !isCorrect;
 
     let marksAwarded = 0;
@@ -69,9 +110,17 @@ const calculateResultData = ({ attempt, exam }) => {
     questionReview.push({
       questionId: q.questionId,
       questionText: q.questionText,
+      questionType: qType,
       options: q.options,
       selectedOption,
+      selectedOptions,
+      numericalValue,
+      textAnswer,
       correctAnswer: q.correctAnswer,
+      correctAnswers: q.correctAnswers,
+      acceptedAnswers: q.acceptedAnswers,
+      numericalAnswer: q.numericalAnswer,
+      numericalTolerance: q.numericalTolerance,
       isCorrect,
       marksAwarded,
       explanation: q.explanation,

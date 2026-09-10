@@ -487,6 +487,70 @@ const sampleQuestions = [
     marks: 1,
     negativeMarks: 0.25,
     tags: ["metrics", "recall", "evaluation"]
+  },
+  {
+    questionText: "Which of the following sorting algorithms have a worst-case time complexity of O(n log n)? (Select all that apply)",
+    questionType: "MULTIPLE_MCQ",
+    options: [
+      { id: "A", text: "Merge Sort" },
+      { id: "B", text: "Quick Sort" },
+      { id: "C", text: "Heap Sort" },
+      { id: "D", text: "Bubble Sort" }
+    ],
+    correctAnswer: "A",
+    correctAnswers: ["A", "C"],
+    explanation: "Merge Sort and Heap Sort both guarantee O(n log n) worst-case time complexity. Quick Sort is O(n^2) worst case, and Bubble Sort is O(n^2).",
+    subject: "DSA",
+    topic: "Sorting Algorithms",
+    difficulty: "Medium",
+    marks: 2,
+    negativeMarks: 0.5,
+    tags: ["sorting", "complexity", "multi-correct"]
+  },
+  {
+    questionText: "In relational database theory, every relation in Boyce-Codd Normal Form (BCNF) is also in Third Normal Form (3NF).",
+    questionType: "TRUE_FALSE",
+    options: [
+      { id: "T", text: "True" },
+      { id: "F", text: "False" }
+    ],
+    correctAnswer: "T",
+    explanation: "True. BCNF is a stricter version of 3NF. Every relation in BCNF is inherently in 3NF, but not all 3NF relations satisfy BCNF.",
+    subject: "DBMS",
+    topic: "Normalization",
+    difficulty: "Medium",
+    marks: 1,
+    negativeMarks: 0.25,
+    tags: ["dbms", "normalization", "bcnf"]
+  },
+  {
+    questionText: "In a classful IPv4 network, what is the maximum number of usable host addresses in a subnet with a /25 CIDR prefix mask?",
+    questionType: "NUMERICAL",
+    options: [],
+    numericalAnswer: 126,
+    numericalTolerance: 0,
+    correctAnswer: "126",
+    explanation: "A /25 network leaves 32 - 25 = 7 bits for hosts. 2^7 = 128 total addresses. Subtracting 2 (network address and broadcast address) gives 126 usable hosts.",
+    subject: "Computer Networks",
+    topic: "Subnetting",
+    difficulty: "Medium",
+    marks: 2,
+    negativeMarks: 0,
+    tags: ["networking", "cidr", "ipv4"]
+  },
+  {
+    questionText: "What protocol operates at the Transport Layer of the OSI model to provide reliable, connection-oriented, full-duplex byte stream transmission?",
+    questionType: "FILL_BLANK",
+    options: [],
+    acceptedAnswers: ["TCP", "Transmission Control Protocol"],
+    correctAnswer: "TCP",
+    explanation: "Transmission Control Protocol (TCP) provides connection-oriented, reliable, sequence-controlled byte streams with congestion and flow control.",
+    subject: "Computer Networks",
+    topic: "Transport Layer",
+    difficulty: "Easy",
+    marks: 1,
+    negativeMarks: 0.25,
+    tags: ["networking", "tcp", "transport"]
   }
 ];
 

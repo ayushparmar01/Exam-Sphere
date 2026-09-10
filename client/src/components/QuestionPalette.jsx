@@ -17,7 +17,12 @@ export const QuestionPalette = ({
     const ans = answerMap.get(qId);
     if (!ans || !ans.visited) return 'not_visited';
     if (ans.markedForReview) return 'marked';
-    if (ans.selectedOption !== null && ans.selectedOption !== undefined) return 'answered';
+    const hasAnswer =
+      (ans.selectedOption !== null && ans.selectedOption !== undefined && ans.selectedOption !== '') ||
+      (Array.isArray(ans.selectedOptions) && ans.selectedOptions.length > 0) ||
+      (typeof ans.numericalValue === 'number' && !isNaN(ans.numericalValue)) ||
+      (typeof ans.textAnswer === 'string' && ans.textAnswer.trim().length > 0);
+    if (hasAnswer) return 'answered';
     return 'not_answered';
   };
 

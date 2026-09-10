@@ -2,6 +2,7 @@ const Result = require('../models/Result');
 const ExamAttempt = require('../models/ExamAttempt');
 const Exam = require('../models/Exam');
 const User = require('../models/User');
+const Question = require('../models/Question');
 
 // @desc    Get comprehensive student analytics
 // @route   GET /api/analytics/student
@@ -221,7 +222,139 @@ const getAdminAnalytics = async (req, res, next) => {
   }
 };
 
+// @desc    Get comprehensive teacher analytics
+// @route   GET /api/analytics/teacher
+const getTeacherAnalytics = async (req, res, next) => {
+  try {
+    const teacherId = req.user._id;
+
+    // Find exams created by this teacher (or all if admin)
+    const examFilter = req.user.role === 'ADMIN' ? {} : { createdBy: teacherId };
+    const teacherExams = await Exam.find(examFilter).select('_id title subject status totalMarks questions');
+    const examIds = teacherExams.map((e) => e._id);
+
+    const [totalQuestions, attempts, results] = await Promise.all([
+      Question.countDocuments({ createdBy: teacherId, status: { $ne: 'Archived' } }),
+      ExamAttempt.find({ examId: { $in: examIds } }).select('status startedAt submittedAt integrityRiskLevel'),
+      Result.find({ examId: { $in: examIds } })
+        .populate('examId', 'title subject')
+        .populate('studentId', 'name email avatar')
+        .sort({ createdAt: -1 }),
+    ]);
+
+    const totalExams = teacherExams.length;
+    const publishedExams = teacherExams.filter((e) => ['LIVE', 'PUBLISHED', 'SCHEDULED'].includes(e.status)).length;
+    const liveExams = teacherExams.filter((e) => e.status === 'LIVE').length;
+    const totalAttempts = attempts.length;
+    const completedAttempts = results.length;
+
+    const avgScore = completedAttempts > 0
+      ? Math.round((results.reduce((sum, r) => sum + (r.percentage || 0), 0) / completedAttempts) * 10) / 10
+      : 0;
+    const avgAccuracy = completedAttempts > 0
+      ? Math.round((results.reduce((sum, r) => sum + (r.accuracy || 0), 0) / completedAttempts) * 10) / 10
+      : 0;
+    const passedCount = results.filter((r) => r.isPassed).length;
+    const passRate = completedAttempts > 0 ? Math.round((passedCount / completedAttempts) * 100) : 0;
+    const completionRate = totalAttempts > 0 ? Math.round((completedAttempts / totalAttempts) * 100) : 0;
+
+    // Score distribution brackets: [0-20, 21-40, 41-60, 61-80, 81-100]
+    const scoreDistribution = [
+      { range: '0-20%', count: 0 },
+      { range: '21-40%', count: 0 },
+      { range: '41-60%', count: 0 },
+      { range: '61-80%', count: 0 },
+      { range: '81-100%', count: 0 },
+    ];
+    results.forEach((r) => {
+      const p = r.percentage || 0;
+      if (p <= 20) scoreDistribution[0].count++;
+      else if (p <= 40) scoreDistribution[1].count++;
+      else if (p <= 60) scoreDistribution[2].count++;
+      else if (p <= 80) scoreDistribution[3].count++;
+      else scoreDistribution[4].count++;
+    });
+
+    // Integrity breakdown
+    const integrityBreakdown = {
+      lowRisk: attempts.filter((a) => (a.integrityRiskLevel || 'LOW') === 'LOW').length,
+      mediumRisk: attempts.filter((a) => a.integrityRiskLevel === 'MEDIUM').length,
+      highRisk: attempts.filter((a) => a.integrityRiskLevel === 'HIGH').length,
+    };
+
+    // Question analytics aggregated across results
+    const questionPerformanceMap = {};
+    results.forEach((r) => {
+      (r.questionReview || []).forEach((qr) => {
+        if (!qr.questionId) return;
+        const qid = qr.questionId.toString();
+        if (!questionPerformanceMap[qid]) {
+          questionPerformanceMap[qid] = {
+            questionId: qid,
+            questionText: qr.questionText,
+            subject: qr.subject,
+            topic: qr.topic,
+            difficulty: qr.difficulty,
+            attempts: 0,
+            correct: 0,
+            incorrect: 0,
+            unattempted: 0,
+          };
+        }
+        questionPerformanceMap[qid].attempts++;
+        if (qr.isCorrect) questionPerformanceMap[qid].correct++;
+        else if (qr.selectedOption !== null || qr.numericalValue !== null || qr.textAnswer !== null) {
+          questionPerformanceMap[qid].incorrect++;
+        } else {
+          questionPerformanceMap[qid].unattempted++;
+        }
+      });
+    });
+
+    const questionAnalytics = Object.values(questionPerformanceMap).map((q) => {
+      const accuracy = q.attempts > 0 ? Math.round((q.correct / q.attempts) * 100) : 0;
+      const errorRate = 100 - accuracy;
+      return {
+        ...q,
+        accuracy,
+        errorRate,
+      };
+    });
+
+    // Sort to find most difficult and most skipped
+    const mostDifficult = [...questionAnalytics].sort((a, b) => a.accuracy - b.accuracy).slice(0, 5);
+    const mostSkipped = [...questionAnalytics].sort((a, b) => b.unattempted - a.unattempted).slice(0, 5);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        kpis: {
+          totalExams,
+          publishedExams,
+          liveExams,
+          totalQuestions,
+          totalAttempts,
+          completedAttempts,
+          avgScore,
+          avgAccuracy,
+          passRate,
+          completionRate,
+        },
+        scoreDistribution,
+        integrityBreakdown,
+        questionAnalytics,
+        mostDifficult,
+        mostSkipped,
+        recentResults: results.slice(0, 10),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getStudentAnalytics,
   getAdminAnalytics,
+  getTeacherAnalytics,
 };

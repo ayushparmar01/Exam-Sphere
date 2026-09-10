@@ -57,9 +57,9 @@ const initSocket = (httpServer) => {
       socket.emit('joined_room', { room, timestamp: Date.now() });
     });
 
-    // Join Admin Live Monitoring Room
+    // Join Admin & Teacher Live Monitoring Room
     socket.on('join_admin_monitor', ({ examId }) => {
-      if (socket.user && socket.user.role === 'ADMIN') {
+      if (socket.user && (socket.user.role === 'ADMIN' || socket.user.role === 'TEACHER')) {
         if (examId) socket.join(`exam:${examId}:monitor`);
         socket.join('admin:live_monitor');
         socket.emit('joined_monitor', { examId: examId || 'all', status: 'ACTIVE' });
@@ -94,18 +94,25 @@ const initSocket = (httpServer) => {
     });
 
     // Device Status Delta Broadcast
-    socket.on('device_status_update', async ({ attemptId, cameraStatus, microphoneStatus }) => {
+    socket.on('device_status_update', async ({ attemptId, cameraStatus, microphoneStatus, cameraState, microphoneState }) => {
       if (!attemptId) return;
       const updateFields = {};
       if (cameraStatus) updateFields.cameraStatus = cameraStatus;
       if (microphoneStatus) updateFields.microphoneStatus = microphoneStatus;
+      if (cameraState) updateFields.cameraState = cameraState;
+      if (microphoneState) updateFields.microphoneState = microphoneState;
 
-      await ExamAttempt.findByIdAndUpdate(attemptId, { $set: updateFields }).catch(() => {});
+      const attempt = await ExamAttempt.findByIdAndUpdate(attemptId, { $set: updateFields }).catch(() => {});
 
-      io.to('admin:live_monitor').emit('candidate_device_delta', {
+      const deltaPayload = {
         attemptId,
         ...updateFields,
-      });
+      };
+
+      io.to('admin:live_monitor').emit('candidate_device_delta', deltaPayload);
+      if (attempt?.examId) {
+        io.to(`exam:${attempt.examId}:monitor`).emit('candidate_device_delta', deltaPayload);
+      }
     });
 
     // Disconnect Handler

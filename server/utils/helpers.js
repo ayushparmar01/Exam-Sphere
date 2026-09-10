@@ -36,7 +36,7 @@ const paginateQuery = async (Model, filter = {}, { page = 1, limit = 10, sort = 
  * Strips correctAnswer and explanation; orders options according to frozen optionOrder
  */
 const sanitizeQuestionForStudent = (questionSnapshot, optionOrder = null) => {
-  let options = questionSnapshot.options;
+  let options = questionSnapshot.options || [];
   if (optionOrder && Array.isArray(optionOrder) && optionOrder.length > 0) {
     const orderMap = new Map(optionOrder.map((id, index) => [id, index]));
     options = [...options].sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
@@ -45,12 +45,16 @@ const sanitizeQuestionForStudent = (questionSnapshot, optionOrder = null) => {
   return {
     questionId: questionSnapshot.questionId,
     questionText: questionSnapshot.questionText,
+    questionType: questionSnapshot.questionType || 'SINGLE_MCQ',
     options: options.map((o) => ({ id: o.id, text: o.text })),
+    numericalTolerance: questionSnapshot.numericalTolerance || 0,
+    estimatedTime: questionSnapshot.estimatedTime || 60,
     subject: questionSnapshot.subject,
     topic: questionSnapshot.topic,
-    difficulty: questionSnapshot.difficulty,
-    marks: questionSnapshot.marks,
-    negativeMarks: questionSnapshot.negativeMarks,
+    subtopic: questionSnapshot.subtopic || '',
+    difficulty: questionSnapshot.difficulty || 'Medium',
+    marks: questionSnapshot.marks || 1,
+    negativeMarks: questionSnapshot.negativeMarks || 0,
   };
 };
 

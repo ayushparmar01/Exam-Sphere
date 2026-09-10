@@ -19,10 +19,18 @@ const EVENT_CONFIG = {
   CAMERA_PERMISSION_CHANGED: { points: 5, severity: 'LOW', counter: 'cameraEvents' },
   CAMERA_UNAVAILABLE: { points: 15, severity: 'MEDIUM', counter: 'cameraEvents' },
   CAMERA_STREAM_STOPPED: { points: 15, severity: 'MEDIUM', counter: 'cameraEvents' },
+  CAMERA_INTERRUPTED: { points: 15, severity: 'MEDIUM', counter: 'cameraEvents' },
+  CAMERA_RESTORED: { points: 0, severity: 'LOW', counter: null },
+  CAMERA_ACTIVE: { points: 0, severity: 'LOW', counter: null },
+  CAMERA_DENIED: { points: 20, severity: 'HIGH', counter: 'cameraEvents' },
   FACE_ABSENT: { points: 10, severity: 'MEDIUM', counter: 'cameraEvents' },
   MULTIPLE_FACES: { points: 20, severity: 'HIGH', counter: 'cameraEvents' },
   MICROPHONE_PERMISSION_CHANGED: { points: 5, severity: 'LOW', counter: 'microphoneEvents' },
   MICROPHONE_UNAVAILABLE: { points: 15, severity: 'MEDIUM', counter: 'microphoneEvents' },
+  MIC_INTERRUPTED: { points: 10, severity: 'MEDIUM', counter: 'microphoneEvents' },
+  MIC_RESTORED: { points: 0, severity: 'LOW', counter: null },
+  MIC_ACTIVE: { points: 0, severity: 'LOW', counter: null },
+  MIC_DENIED: { points: 15, severity: 'MEDIUM', counter: 'microphoneEvents' },
   SPEECH_DETECTED: { points: 10, severity: 'MEDIUM', counter: 'microphoneEvents' },
   MULTIPLE_VOICES_DETECTED: { points: 20, severity: 'HIGH', counter: 'microphoneEvents' },
   NETWORK_OFFLINE: { points: 2, severity: 'LOW', counter: 'reconnects' },
@@ -75,14 +83,28 @@ const processIntegrityEvent = async ({ attemptId, studentId, eventType, metadata
   }
 
   // Device status updates
-  if (eventType === 'CAMERA_STREAM_STOPPED' || eventType === 'CAMERA_UNAVAILABLE') {
+  if (eventType === 'CAMERA_STREAM_STOPPED' || eventType === 'CAMERA_UNAVAILABLE' || eventType === 'CAMERA_INTERRUPTED') {
     attempt.cameraStatus = 'UNAVAILABLE';
+    attempt.cameraState = 'CAMERA_INTERRUPTED';
+  } else if (eventType === 'CAMERA_ACTIVE' || eventType === 'CAMERA_RESTORED') {
+    attempt.cameraStatus = 'ACTIVE';
+    attempt.cameraState = 'CAMERA_ACTIVE';
+  } else if (eventType === 'CAMERA_DENIED') {
+    attempt.cameraStatus = 'DENIED';
+    attempt.cameraState = 'CAMERA_DENIED';
   } else if (eventType === 'CAMERA_PERMISSION_CHANGED' && metadata.status) {
     attempt.cameraStatus = metadata.status;
   }
 
-  if (eventType === 'MICROPHONE_UNAVAILABLE') {
+  if (eventType === 'MICROPHONE_UNAVAILABLE' || eventType === 'MIC_INTERRUPTED') {
     attempt.microphoneStatus = 'UNAVAILABLE';
+    attempt.microphoneState = 'MIC_INTERRUPTED';
+  } else if (eventType === 'MIC_ACTIVE' || eventType === 'MIC_RESTORED') {
+    attempt.microphoneStatus = 'ACTIVE';
+    attempt.microphoneState = 'MIC_ACTIVE';
+  } else if (eventType === 'MIC_DENIED') {
+    attempt.microphoneStatus = 'DENIED';
+    attempt.microphoneState = 'MIC_DENIED';
   } else if (eventType === 'MICROPHONE_PERMISSION_CHANGED' && metadata.status) {
     attempt.microphoneStatus = metadata.status;
   }

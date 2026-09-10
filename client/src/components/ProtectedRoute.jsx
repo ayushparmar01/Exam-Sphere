@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
-export const ProtectedRoute = ({ children, requireAdmin = false }) => {
+export const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = null }) => {
   const { user, isAuthenticated, loading, isAdmin } = useAuth();
   const location = useLocation();
 
@@ -23,7 +23,22 @@ export const ProtectedRoute = ({ children, requireAdmin = false }) => {
   }
 
   if (requireAdmin && !isAdmin) {
+    if (user?.role === 'TEACHER') {
+      return <Navigate to="/teacher/dashboard" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
+  }
+
+  if (allowedRoles && Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+    if (!allowedRoles.includes(user?.role)) {
+      if (user?.role === 'TEACHER') {
+        return <Navigate to="/teacher/dashboard" replace />;
+      }
+      if (user?.role === 'ADMIN') {
+        return <Navigate to="/admin/dashboard" replace />;
+      }
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;

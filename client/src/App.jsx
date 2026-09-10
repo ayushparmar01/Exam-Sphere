@@ -26,6 +26,14 @@ import { PerformanceAnalyticsPage } from './pages/PerformanceAnalyticsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 
+// Teacher Pages
+import { TeacherDashboardPage } from './pages/teacher/TeacherDashboardPage';
+import { TeacherQuestionBankPage } from './pages/teacher/TeacherQuestionBankPage';
+import { TeacherCreateExamPage } from './pages/teacher/TeacherCreateExamPage';
+import { TeacherExamsPage } from './pages/teacher/TeacherExamsPage';
+import { TeacherResultsPage } from './pages/teacher/TeacherResultsPage';
+import { TeacherAnalyticsPage } from './pages/teacher/TeacherAnalyticsPage';
+
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminQuestionsPage } from './pages/admin/AdminQuestionsPage';
@@ -133,6 +141,56 @@ const AppLayout = () => {
             }
           />
 
+          {/* Teacher Protected Routes */}
+          <Route
+            path="/teacher/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/questions"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherQuestionBankPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/exams"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherExamsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/exams/create"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherCreateExamPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/results"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherResultsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/analytics"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherAnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Admin Protected Routes */}
           <Route
             path="/admin/dashboard"
@@ -145,7 +203,7 @@ const AppLayout = () => {
           <Route
             path="/admin/monitoring"
             element={
-              <ProtectedRoute requireAdmin={true}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'TEACHER']}>
                 <AdminLiveMonitoringPage />
               </ProtectedRoute>
             }
@@ -153,7 +211,7 @@ const AppLayout = () => {
           <Route
             path="/admin/attempts/:id/monitoring"
             element={
-              <ProtectedRoute requireAdmin={true}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'TEACHER']}>
                 <AdminCandidateDetailPage />
               </ProtectedRoute>
             }

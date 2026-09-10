@@ -5,17 +5,75 @@ const ExamSession = require('../models/ExamSession');
 const { paginateQuery } = require('../utils/helpers');
 const { logAdminAction } = require('../services/auditService');
 
-// @desc    Get all exams (for student browse / admin manage)
+// Helper to construct an immutable exam snapshot from questions and rules
+const generateExamSnapshot = async (exam) => {
+  const questionDocs = await Question.find({
+    _id: { $in: exam.questions },
+    status: { $ne: 'Archived' },
+  });
+
+  return {
+    frozenAt: new Date(),
+    questions: questionDocs.map((q) => ({
+      questionId: q._id.toString(),
+      version: q.version || 1,
+      questionText: q.questionText,
+      questionType: q.questionType || 'SINGLE_MCQ',
+      options: q.options || [],
+      correctAnswer: q.correctAnswer || '',
+      correctAnswers: q.correctAnswers || [],
+      acceptedAnswers: q.acceptedAnswers || [],
+      numericalAnswer: typeof q.numericalAnswer === 'number' ? q.numericalAnswer : null,
+      numericalTolerance: q.numericalTolerance || 0,
+      explanation: q.explanation || '',
+      subject: q.subject,
+      topic: q.topic,
+      subtopic: q.subtopic || '',
+      difficulty: q.difficulty || 'Medium',
+      marks: q.marks || 1,
+      negativeMarks: exam.negativeMarking ? (exam.negativeMarkPenalty || 0.25) : 0,
+    })),
+    rules: {
+      duration: exam.duration,
+      totalMarks: exam.totalMarks,
+      passingPercentage: exam.passingPercentage,
+      negativeMarking: exam.negativeMarking,
+      negativeMarkPenalty: exam.negativeMarkPenalty,
+      maximumAttempts: exam.maximumAttempts,
+      allowRetake: exam.allowRetake,
+      randomizeQuestions: exam.randomizeQuestions,
+      randomizeOptions: exam.randomizeOptions,
+      cameraRequired: exam.cameraRequired,
+      cameraMonitoringEnabled: exam.cameraMonitoringEnabled,
+      microphoneRequired: exam.microphoneRequired,
+      microphoneMonitoringEnabled: exam.microphoneMonitoringEnabled,
+      fullscreenRequired: exam.fullscreenRequired,
+      maxFullscreenExits: exam.maxFullscreenExits,
+      showResultImmediately: exam.showResultImmediately,
+      showCorrectAnswers: exam.showCorrectAnswers,
+      showExplanations: exam.showExplanations,
+    },
+  };
+};
+
+// @desc    Get all exams (for student browse / teacher / admin manage)
 // @route   GET /api/exams
 const getExams = async (req, res, next) => {
   try {
-    const { subject, difficulty, status, search, page = 1, limit = 12 } = req.query;
+    const { subject, difficulty, status, search, scope, page = 1, limit = 12 } = req.query;
     const filter = {};
 
-    // For non-admin users, don't show DRAFT or ARCHIVED exams
-    if (!req.user || req.user.role !== 'ADMIN') {
-      filter.status = { $in: ['LIVE', 'SCHEDULED'] };
-    } else if (status) {
+    // Role-based visibility
+    if (!req.user || req.user.role === 'STUDENT') {
+      filter.status = { $in: ['LIVE', 'SCHEDULED', 'PUBLISHED'] };
+    } else if (req.user.role === 'TEACHER') {
+      if (scope === 'mine' || !scope) {
+        filter.createdBy = req.user._id;
+        if (status && status !== 'All') filter.status = status;
+      } else {
+        if (status && status !== 'All') filter.status = status;
+      }
+    } else if (status && status !== 'All') {
       filter.status = status;
     }
 
@@ -35,7 +93,7 @@ const getExams = async (req, res, next) => {
       page,
       limit,
       sort: { createdAt: -1 },
-      populate: { path: 'createdBy', select: 'name email' },
+      populate: { path: 'createdBy', select: 'name email role department' },
     });
 
     // If user is a student, attach their attempt status to each exam
@@ -95,10 +153,12 @@ const getExams = async (req, res, next) => {
 const getExamById = async (req, res, next) => {
   try {
     const exam = await Exam.findById(req.params.id)
-      .populate('createdBy', 'name email')
+      .populate('createdBy', 'name email role department')
       .populate({
         path: 'questions',
-        select: 'subject topic difficulty marks',
+        select: req.user?.role === 'STUDENT'
+          ? 'questionText questionType options subject topic subtopic difficulty marks negativeMarks estimatedTime'
+          : '',
       });
 
     if (!exam) {
@@ -108,44 +168,31 @@ const getExamById = async (req, res, next) => {
       });
     }
 
-    const examData = exam.toObject();
-    examData.computedStatus = exam.getComputedStatus();
+    const examObj = exam.toObject();
+    examObj.computedStatus = exam.getComputedStatus();
 
-    // Attach student-specific attempt info if logged in
+    // Attach student attempt count if authenticated as student
     if (req.user && req.user.role === 'STUDENT') {
       const attempts = await ExamAttempt.find({
         studentId: req.user._id,
         examId: exam._id,
-      }).sort({ createdAt: -1 });
-
-      const activeSession = await ExamSession.findOne({
-        studentId: req.user._id,
-        examId: exam._id,
-        status: 'ACTIVE',
       });
-
-      const completedAttempts = attempts.filter((a) => a.status === 'SUBMITTED' || a.status === 'TIMED_OUT');
-      const canAttempt = completedAttempts.length < (exam.maximumAttempts || 1) && (completedAttempts.length === 0 || exam.allowRetake);
-
-      examData.userAttemptInfo = {
-        attemptsCount: completedAttempts.length,
-        maximumAttempts: exam.maximumAttempts,
-        canAttempt,
-        hasActiveSession: !!activeSession,
-        activeAttemptId: activeSession ? activeSession.attemptId : null,
-      };
+      const completed = attempts.filter((a) => a.status === 'SUBMITTED' || a.status === 'TIMED_OUT').length;
+      examObj.userAttemptsCount = completed;
+      examObj.hasActiveSession = attempts.some((a) => a.status === 'IN_PROGRESS');
+      examObj.canAttempt = completed < (exam.maximumAttempts || 1) && (completed === 0 || exam.allowRetake);
     }
 
     res.status(200).json({
       success: true,
-      data: examData,
+      data: examObj,
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc    Create new exam (Admin)
+// @desc    Create exam (Teacher / Admin)
 // @route   POST /api/exams
 const createExam = async (req, res, next) => {
   try {
@@ -154,7 +201,8 @@ const createExam = async (req, res, next) => {
       description,
       subject,
       duration,
-      questions,
+      questions = [],
+      newQuestions = [],
       negativeMarking,
       negativeMarkPenalty,
       passingPercentage,
@@ -164,6 +212,8 @@ const createExam = async (req, res, next) => {
       maximumAttempts,
       allowRetake,
       status,
+      questionDistribution,
+      distributionConfig,
       showResultImmediately,
       showCorrectAnswers,
       showExplanations,
@@ -172,6 +222,14 @@ const createExam = async (req, res, next) => {
       showPercentile,
       randomizeQuestions,
       randomizeOptions,
+      cameraRequired,
+      cameraMonitoringEnabled,
+      microphoneRequired,
+      microphoneMonitoringEnabled,
+      fullscreenRequired,
+      maxFullscreenExits,
+      terminateAfterFullscreenExits,
+      proctoringConfig,
     } = req.body;
 
     if (!title || !subject || !duration) {
@@ -181,21 +239,54 @@ const createExam = async (req, res, next) => {
       });
     }
 
+    let finalQuestionIds = [...questions];
+
+    // Create inline new questions if provided (Requirement 4)
+    if (Array.isArray(newQuestions) && newQuestions.length > 0) {
+      const createdInline = await Promise.all(
+        newQuestions.map(async (nq) => {
+          return await Question.create({
+            questionText: nq.questionText,
+            questionType: nq.questionType || 'SINGLE_MCQ',
+            options: nq.options || [],
+            correctAnswer: nq.correctAnswer || '',
+            correctAnswers: nq.correctAnswers || [],
+            acceptedAnswers: nq.acceptedAnswers || [],
+            numericalAnswer: nq.numericalAnswer ?? null,
+            numericalTolerance: nq.numericalTolerance || 0,
+            explanation: nq.explanation || 'Created with exam.',
+            subject: nq.subject || subject,
+            topic: nq.topic || 'General',
+            subtopic: nq.subtopic || '',
+            difficulty: nq.difficulty || difficulty || 'Medium',
+            marks: Number(nq.marks) || 1,
+            negativeMarks: Number(nq.negativeMarks) || 0,
+            status: 'Active',
+            version: 1,
+            createdBy: req.user._id,
+          });
+        })
+      );
+      finalQuestionIds = [...finalQuestionIds, ...createdInline.map((q) => q._id)];
+    }
+
     // Calculate total marks from questions
     let totalMarks = 0;
-    if (questions && questions.length > 0) {
-      const questionDocs = await Question.find({ _id: { $in: questions } });
+    if (finalQuestionIds.length > 0) {
+      const questionDocs = await Question.find({ _id: { $in: finalQuestionIds } });
       totalMarks = questionDocs.reduce((sum, q) => sum + (q.marks || 1), 0);
     }
 
-    const exam = await Exam.create({
+    const assignedStatus = status || 'DRAFT';
+
+    const exam = new Exam({
       title: title.trim(),
       description: description ? description.trim() : '',
       subject: subject.trim(),
       duration: Number(duration),
-      questions: questions || [],
+      questions: finalQuestionIds,
       totalMarks,
-      negativeMarking: !!negativeMarking,
+      negativeMarking: negativeMarking !== false,
       negativeMarkPenalty: negativeMarkPenalty || 0.25,
       passingPercentage: passingPercentage || 40,
       difficulty: difficulty || 'Medium',
@@ -203,7 +294,9 @@ const createExam = async (req, res, next) => {
       endTime: endTime || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       maximumAttempts: maximumAttempts || 1,
       allowRetake: !!allowRetake,
-      status: status || 'LIVE',
+      status: assignedStatus,
+      questionDistribution: questionDistribution || 'FIXED',
+      distributionConfig: distributionConfig || {},
       showResultImmediately: showResultImmediately !== false,
       showCorrectAnswers: showCorrectAnswers !== false,
       showExplanations: showExplanations !== false,
@@ -212,16 +305,14 @@ const createExam = async (req, res, next) => {
       showPercentile: showPercentile !== false,
       randomizeQuestions: randomizeQuestions !== false,
       randomizeOptions: !!randomizeOptions,
-      cameraRequired: !!req.body.cameraRequired,
-      cameraMonitoringEnabled: !!req.body.cameraMonitoringEnabled,
-      microphoneRequired: !!req.body.microphoneRequired,
-      microphoneMonitoringEnabled: !!req.body.microphoneMonitoringEnabled,
-      facePresenceMonitoringEnabled: !!req.body.facePresenceMonitoringEnabled,
-      multipleFaceDetectionEnabled: !!req.body.multipleFaceDetectionEnabled,
-      fullscreenRequired: !!req.body.fullscreenRequired,
-      maxFullscreenExits: req.body.maxFullscreenExits || 3,
-      terminateAfterFullscreenExits: !!req.body.terminateAfterFullscreenExits,
-      proctoringConfig: req.body.proctoringConfig || {
+      cameraRequired: cameraRequired !== false,
+      cameraMonitoringEnabled: cameraMonitoringEnabled !== false,
+      microphoneRequired: microphoneRequired !== false,
+      microphoneMonitoringEnabled: microphoneMonitoringEnabled !== false,
+      fullscreenRequired: fullscreenRequired !== false,
+      maxFullscreenExits: maxFullscreenExits || 3,
+      terminateAfterFullscreenExits: !!terminateAfterFullscreenExits,
+      proctoringConfig: proctoringConfig || {
         lowRiskThreshold: 15,
         mediumRiskThreshold: 40,
         highRiskThreshold: 60,
@@ -232,12 +323,19 @@ const createExam = async (req, res, next) => {
       createdBy: req.user._id,
     });
 
+    // If published or live immediately, freeze immutable snapshot
+    if (['LIVE', 'PUBLISHED', 'SCHEDULED'].includes(assignedStatus) && finalQuestionIds.length > 0) {
+      exam.snapshot = await generateExamSnapshot(exam);
+    }
+
+    await exam.save();
+
     await logAdminAction({
       action: 'EXAM_CREATED',
       performedBy: req.user._id,
       entityType: 'EXAM',
       entityId: exam._id,
-      details: { title: exam.title, questionsCount: exam.questions.length },
+      details: { title: exam.title, questionsCount: exam.questions.length, status: exam.status },
       req,
     });
 
@@ -251,7 +349,7 @@ const createExam = async (req, res, next) => {
   }
 };
 
-// @desc    Update exam (Admin)
+// @desc    Update exam (Teacher / Admin)
 // @route   PUT /api/exams/:id
 const updateExam = async (req, res, next) => {
   try {
@@ -263,37 +361,79 @@ const updateExam = async (req, res, next) => {
       });
     }
 
+    // Ownership check for TEACHER role
+    if (req.user.role === 'TEACHER' && exam.createdBy && exam.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden. You can only edit exams created by yourself.',
+      });
+    }
+
+    // Support creating new inline questions on update
+    if (Array.isArray(req.body.newQuestions) && req.body.newQuestions.length > 0) {
+      const createdInline = await Promise.all(
+        req.body.newQuestions.map(async (nq) => {
+          return await Question.create({
+            questionText: nq.questionText,
+            questionType: nq.questionType || 'SINGLE_MCQ',
+            options: nq.options || [],
+            correctAnswer: nq.correctAnswer || '',
+            correctAnswers: nq.correctAnswers || [],
+            acceptedAnswers: nq.acceptedAnswers || [],
+            numericalAnswer: nq.numericalAnswer ?? null,
+            numericalTolerance: nq.numericalTolerance || 0,
+            explanation: nq.explanation || 'Created with exam.',
+            subject: nq.subject || exam.subject,
+            topic: nq.topic || 'General',
+            subtopic: nq.subtopic || '',
+            difficulty: nq.difficulty || exam.difficulty || 'Medium',
+            marks: Number(nq.marks) || 1,
+            negativeMarks: Number(nq.negativeMarks) || 0,
+            status: 'Active',
+            version: 1,
+            createdBy: req.user._id,
+          });
+        })
+      );
+      req.body.questions = [...(req.body.questions || exam.questions), ...createdInline.map((q) => q._id)];
+    }
+
     // Recalculate total marks if questions updated
     if (req.body.questions) {
       const questionDocs = await Question.find({ _id: { $in: req.body.questions } });
       req.body.totalMarks = questionDocs.reduce((sum, q) => sum + (q.marks || 1), 0);
     }
 
-    const updatedExam = await Exam.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    // Apply updates
+    Object.assign(exam, req.body);
+
+    // If transitioned to published or live, freeze/update snapshot
+    if (['LIVE', 'PUBLISHED', 'SCHEDULED'].includes(exam.status) && (!exam.snapshot || !exam.snapshot.frozenAt)) {
+      exam.snapshot = await generateExamSnapshot(exam);
+    }
+
+    await exam.save();
 
     await logAdminAction({
       action: 'EXAM_UPDATED',
       performedBy: req.user._id,
       entityType: 'EXAM',
-      entityId: updatedExam._id,
-      details: { title: updatedExam.title },
+      entityId: exam._id,
+      details: { title: exam.title, status: exam.status },
       req,
     });
 
     res.status(200).json({
       success: true,
       message: 'Exam updated successfully.',
-      data: updatedExam,
+      data: exam,
     });
   } catch (err) {
     next(err);
   }
 };
 
-// @desc    Toggle publish status (Admin)
+// @desc    Toggle publish status / Snapshot generation (Teacher / Admin)
 // @route   PATCH /api/exams/:id/publish
 const togglePublish = async (req, res, next) => {
   try {
@@ -305,16 +445,28 @@ const togglePublish = async (req, res, next) => {
       });
     }
 
-    const newStatus = exam.status === 'LIVE' ? 'DRAFT' : 'LIVE';
+    if (req.user.role === 'TEACHER' && exam.createdBy && exam.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden. You can only publish exams created by yourself.',
+      });
+    }
+
+    const newStatus = exam.status === 'LIVE' || exam.status === 'PUBLISHED' ? 'DRAFT' : 'LIVE';
     exam.status = newStatus;
+
+    if (newStatus === 'LIVE') {
+      exam.snapshot = await generateExamSnapshot(exam);
+    }
+
     await exam.save();
 
     await logAdminAction({
-      action: newStatus === 'LIVE' ? 'EXAM_PUBLISHED' : 'EXAM_ARCHIVED',
+      action: newStatus === 'LIVE' ? 'EXAM_PUBLISHED' : 'EXAM_UNPUBLISHED',
       performedBy: req.user._id,
       entityType: 'EXAM',
       entityId: exam._id,
-      details: { newStatus },
+      details: { newStatus, snapshotCreated: !!exam.snapshot },
       req,
     });
 
@@ -328,7 +480,7 @@ const togglePublish = async (req, res, next) => {
   }
 };
 
-// @desc    Delete/Archive exam (Admin)
+// @desc    Delete/Archive exam (Teacher / Admin)
 // @route   DELETE /api/exams/:id
 const deleteExam = async (req, res, next) => {
   try {
@@ -337,6 +489,13 @@ const deleteExam = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Exam not found.',
+      });
+    }
+
+    if (req.user.role === 'TEACHER' && exam.createdBy && exam.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden. You can only delete exams created by yourself.',
       });
     }
 

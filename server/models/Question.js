@@ -7,16 +7,47 @@ const questionSchema = new mongoose.Schema(
       required: [true, 'Question text is required'],
       trim: true,
     },
+    questionType: {
+      type: String,
+      enum: ['SINGLE_MCQ', 'MULTIPLE_MCQ', 'TRUE_FALSE', 'NUMERICAL', 'FILL_BLANK'],
+      default: 'SINGLE_MCQ',
+      index: true,
+    },
     options: [
       {
-        id: { type: String, required: true }, // e.g., 'A', 'B', 'C', 'D'
+        id: { type: String, required: true }, // e.g., 'A', 'B', 'C', 'D' or 'T', 'F'
         text: { type: String, required: true },
       },
     ],
+    // Single MCQ / True-False primary correct answer
     correctAnswer: {
       type: String,
-      required: [true, 'Correct answer is required'],
       trim: true,
+      default: '',
+    },
+    // Multiple Correct MCQ answers (e.g. ['A', 'C'])
+    correctAnswers: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    // Fill in the Blank accepted matching strings
+    acceptedAnswers: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    // Numerical question answer and precision tolerance
+    numericalAnswer: {
+      type: Number,
+      default: null,
+    },
+    numericalTolerance: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     explanation: {
       type: String,
@@ -35,6 +66,11 @@ const questionSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    subtopic: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     difficulty: {
       type: String,
       enum: ['Easy', 'Medium', 'Hard'],
@@ -52,6 +88,10 @@ const questionSchema = new mongoose.Schema(
       min: 0,
     },
     tags: [{ type: String, trim: true }],
+    estimatedTime: {
+      type: Number,
+      default: 60, // in seconds
+    },
     version: {
       type: Number,
       default: 1,
@@ -69,12 +109,19 @@ const questionSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
+      index: true,
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
   },
   {
     timestamps: true,
   }
 );
+
+questionSchema.index({ createdBy: 1, status: 1, subject: 1 });
 
 questionSchema.index({ subject: 1, topic: 1, difficulty: 1, status: 1 });
 

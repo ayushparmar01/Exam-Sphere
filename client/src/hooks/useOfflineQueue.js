@@ -77,11 +77,23 @@ export function useOfflineQueue(attemptId) {
 
   // Queue an answer locally and attempt to save
   const enqueueAnswer = useCallback(
-    async ({ questionId, selectedOption, markedForReview, visited, currentQuestionIndex }) => {
+    async ({
+      questionId,
+      selectedOption,
+      selectedOptions,
+      numericalValue,
+      textAnswer,
+      markedForReview,
+      visited,
+      currentQuestionIndex,
+    }) => {
       const timestamp = Date.now();
       const payload = {
         questionId,
-        selectedOption,
+        selectedOption: selectedOption !== undefined ? selectedOption : null,
+        selectedOptions: Array.isArray(selectedOptions) ? selectedOptions : [],
+        numericalValue: typeof numericalValue === 'number' && !isNaN(numericalValue) ? numericalValue : null,
+        textAnswer: typeof textAnswer === 'string' ? textAnswer : null,
         markedForReview: !!markedForReview,
         visited: !!visited,
         clientTimestamp: timestamp,
@@ -140,10 +152,8 @@ export function useOfflineQueue(attemptId) {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initial check on mount
-    const q = getQueue();
-    setPendingCount(q.length);
-    if (navigator.onLine && q.length > 0) {
+    // Initial check
+    if (getQueue().length > 0 && navigator.onLine) {
       flushQueue();
     }
 
@@ -160,6 +170,5 @@ export function useOfflineQueue(attemptId) {
     syncMessage,
     enqueueAnswer,
     flushQueue,
-    clearLocalQueue: () => setQueue([]),
   };
 }
