@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Award, CheckCircle, Github } from 'lucide-react';
+import { GLBLogo } from './common/GLBLogo';
 
 export const Footer = () => {
   return (
@@ -8,17 +9,20 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           {/* Brand Column */}
-          <div className="md:col-span-1 space-y-4">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                <Award className="w-5 h-5" />
+          <div className="md:col-span-1 space-y-3">
+            <Link to="/" className="inline-flex items-center gap-2">
+              <GLBLogo size="sm" variant="mark" theme="dark" />
+              <div className="flex flex-col">
+                <span className="text-base font-extrabold text-white tracking-tight">
+                  GLB <span className="text-blue-400">ExamSphere</span>
+                </span>
+                <span className="text-[9px] font-semibold text-blue-300 uppercase">
+                  GL Bajaj Mathura
+                </span>
               </div>
-              <span className="text-lg font-bold text-white tracking-tight">
-                Exam<span className="text-indigo-400">Sphere</span>
-              </span>
             </Link>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Enterprise-grade assessment platform with synchronized live testing, dynamic rank calculations, mistake analytics, and certified performance reporting.
+              Institutional assessment platform for GL Bajaj Group of Institutions, Mathura with live testing, mistake analytics, and certified performance reporting.
             </p>
             <div className="flex items-center gap-2 text-xs text-emerald-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -62,10 +66,10 @@ export const Footer = () => {
         </div>
 
         <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© 2026 ExamSphere Inc. Built with React, Express, MongoDB Atlas & Socket.IO.</p>
+          <p>© 2026 GL Bajaj Group of Institutions, Mathura. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <span className="text-[11px] text-slate-400 bg-slate-800 px-2 py-1 rounded">
-              Engine v2.4 Enterprise
+              GLB Institutional Exam Portal
             </span>
           </div>
         </div>

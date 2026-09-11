@@ -9,6 +9,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Public Pages
 import { LandingPage } from './pages/LandingPage';
+import { RoleSelection } from './pages/RoleSelection';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { ExamDiscoveryPage } from './pages/ExamDiscoveryPage';
@@ -48,16 +49,20 @@ import AdminCandidateDetailPage from './pages/admin/AdminCandidateDetailPage';
 
 const AppLayout = () => {
   const location = useLocation();
-  // Hide Navbar & Footer during active exam attempts for a distraction-free testing environment
-  const isAttemptView = location.pathname.includes('/attempt/');
+  // Hide global Navbar & Footer during active exam attempts, on the institutional landing page, and role selection
+  const hideGlobalChrome = 
+    location.pathname.includes('/attempt/') || 
+    location.pathname === '/' || 
+    location.pathname === '/role-select';
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
-      {!isAttemptView && <Navbar />}
+      {!hideGlobalChrome && <Navbar />}
       <main className="flex-1">
         <Routes>
           {/* Public Pages */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/role-select" element={<RoleSelection />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<LoginPage />} />
@@ -277,7 +282,7 @@ const AppLayout = () => {
           <Route path="*" element={<LandingPage />} />
         </Routes>
       </main>
-      {!isAttemptView && <Footer />}
+      {!hideGlobalChrome && <Footer />}
     </div>
   );
 };

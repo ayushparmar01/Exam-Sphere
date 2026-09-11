@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { GLBLogo } from './common/GLBLogo';
 import {
   Award,
   Bell,
@@ -121,13 +122,16 @@ export const Navbar = () => {
         <div className="flex justify-between h-16">
           {/* Brand Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:bg-indigo-700 transition">
-                <Award className="w-6 h-6" />
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <GLBLogo size="sm" variant="mark" />
+              <div className="flex flex-col">
+                <span className="text-lg font-black tracking-tight text-blue-950">
+                  GLB <span className="text-blue-600">ExamSphere</span>
+                </span>
+                <span className="text-[9px] font-bold text-slate-500 uppercase -mt-1 hidden sm:block">
+                  GL Bajaj Mathura
+                </span>
               </div>
-              <span className="text-xl font-extrabold tracking-tight text-slate-900">
-                Exam<span className="text-indigo-600">Sphere</span>
-              </span>
             </Link>
 
             {/* Desktop Navigation Links */}

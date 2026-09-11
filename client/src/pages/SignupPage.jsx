@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { GLBLogo } from '../components/common/GLBLogo';
 import { Award, Lock, Mail, User, ArrowRight, Loader2, ShieldAlert } from 'lucide-react';
 
 export const SignupPage = () => {
@@ -39,6 +40,8 @@ export const SignupPage = () => {
       const user = await signup({ name, email, password, role });
       if (user.role === 'ADMIN') {
         navigate('/admin/dashboard');
+      } else if (user.role === 'TEACHER') {
+        navigate('/teacher/dashboard');
       } else {
         navigate('/dashboard');
       }
@@ -54,13 +57,13 @@ export const SignupPage = () => {
       <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-xl border border-slate-200/80">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 mx-auto flex items-center justify-center text-white shadow-md shadow-indigo-200">
-            <Award className="w-6 h-6" />
+          <div className="flex justify-center mb-1">
+            <GLBLogo size="md" variant="full" />
           </div>
           <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            Create Free Account
+            Register for GLB ExamSphere
           </h2>
-          <p className="text-xs text-slate-500">Join ExamSphere and elevate your assessment outcomes</p>
+          <p className="text-xs text-slate-500">GL Bajaj Group of Institutions, Mathura • Candidate Onboarding</p>
         </div>
 
         {/* Error Alert */}
