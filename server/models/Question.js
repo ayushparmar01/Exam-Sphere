@@ -71,6 +71,27 @@ const questionSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    unit: {
+      type: String,
+      trim: true,
+      default: 'Unit 1',
+      index: true,
+    },
+    academicYear: {
+      type: String,
+      trim: true,
+      default: '2025-26',
+    },
+    year: {
+      type: Number,
+      default: null,
+    },
+    section: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: '',
+    },
     difficulty: {
       type: String,
       enum: ['Easy', 'Medium', 'Hard'],

@@ -7,13 +7,12 @@ import {
   Mail, 
   ArrowRight, 
   Loader2, 
-  UserCheck, 
-  ShieldAlert, 
+  AlertCircle, 
   Eye, 
   EyeOff, 
   ArrowLeft,
   GraduationCap,
-  BookOpenCheck,
+  BookOpen,
   ShieldCheck,
   CheckCircle2
 } from 'lucide-react';
@@ -69,7 +68,7 @@ export const LoginPage = () => {
     setError('');
 
     if (!email || !password) {
-      setError('Please enter both institutional email and password.');
+      setError('Please enter both email and password.');
       return;
     }
 
@@ -95,7 +94,7 @@ export const LoginPage = () => {
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Authentication failed. Please verify institutional credentials.');
+      setError(err.response?.data?.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
@@ -140,83 +139,82 @@ export const LoginPage = () => {
 
   const roleMeta = {
     student: {
-      title: 'Student Portal Login',
-      badge: 'Student / Candidate Access',
+      title: 'Student Login',
+      badge: 'Candidate Portal',
       icon: GraduationCap,
       placeholder: 'student@examsphere.com',
-      color: 'blue',
     },
     teacher: {
-      title: 'Teacher & Faculty Login',
-      badge: 'Faculty / Evaluator Access',
-      icon: BookOpenCheck,
+      title: 'Teacher Login',
+      badge: 'Faculty Portal',
+      icon: BookOpen,
       placeholder: 'teacher@examsphere.com',
-      color: 'indigo',
     },
     admin: {
-      title: 'Administrator Console Login',
-      badge: 'Examination Cell / Admin',
+      title: 'Administrator Login',
+      badge: 'Admin Console',
       icon: ShieldCheck,
       placeholder: 'admin@examsphere.com',
-      color: 'slate',
     },
   }[activeRole] || {
-    title: 'Institutional Portal Login',
+    title: 'Portal Login',
     badge: 'Institutional Access',
     icon: GraduationCap,
     placeholder: 'name@examsphere.com',
-    color: 'blue',
   };
 
   const CurrentRoleIcon = roleMeta.icon;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center bg-gradient-to-b from-slate-50 via-blue-50/20 to-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center bg-[#0F1115] text-[#E6EDF3] py-12 px-4 sm:px-6 lg:px-8 selection:bg-sky-500 selection:text-slate-950">
       
-      {/* Back to Portal Link */}
-      <div className="max-w-md w-full mb-4 flex items-center justify-between">
+      {/* Top Breadcrumb Links */}
+      <div className="max-w-md w-full mb-4 flex items-center justify-between text-xs">
         <Link
           to="/role-select"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-blue-900 transition"
+          className="inline-flex items-center gap-1.5 font-semibold text-slate-400 hover:text-slate-200 transition-colors focus:outline-none focus:text-white"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Choose Different Role</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Role Selection</span>
         </Link>
         <Link
           to="/"
-          className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition"
+          className="font-semibold text-slate-400 hover:text-slate-200 transition-colors focus:outline-none focus:text-white"
         >
           Portal Home
         </Link>
       </div>
 
-      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-2xl shadow-xl border border-slate-200/90">
+      {/* Dark Card Container */}
+      <div className="max-w-md w-full space-y-6 bg-[#151922] p-8 rounded-2xl shadow-2xl border border-slate-800">
         
-        {/* Institutional Branding Header */}
+        {/* Header with Institutional Branding */}
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <GLBLogo size="md" variant="full" />
+            <GLBLogo size="md" variant="full" theme="dark" />
           </div>
 
           <div className="pt-2">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              GLB <span className="text-blue-700">ExamSphere</span>
+            <h2 className="text-2xl font-black text-[#E6EDF3] tracking-tight">
+              GLB <span className="text-sky-400">ExamSphere</span>
             </h2>
-            <p className="text-xs font-bold uppercase tracking-wider text-blue-900 mt-0.5">
-              Secure Portal Login
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-0.5">
+              Institutional Examination Portal
             </p>
           </div>
         </div>
 
         {/* Role Switcher Tabs */}
-        <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+        <div className="bg-[#0F1115] p-1 rounded-xl flex items-center gap-1 border border-slate-800" role="tablist" aria-label="Select Login Role">
           <button
             type="button"
+            role="tab"
+            aria-selected={activeRole === 'student'}
             onClick={() => handleRoleChange('student')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
               activeRole === 'student'
-                ? 'bg-white text-blue-900 shadow-sm border border-slate-200'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#1C2230] text-sky-400 border border-slate-700'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5" />
@@ -224,23 +222,27 @@ export const LoginPage = () => {
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={activeRole === 'teacher'}
             onClick={() => handleRoleChange('teacher')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
               activeRole === 'teacher'
-                ? 'bg-white text-blue-900 shadow-sm border border-slate-200'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#1C2230] text-sky-400 border border-slate-700'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <BookOpenCheck className="w-3.5 h-3.5" />
+            <BookOpen className="w-3.5 h-3.5" />
             <span>Teacher</span>
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={activeRole === 'admin'}
             onClick={() => handleRoleChange('admin')}
-            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1 ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
               activeRole === 'admin'
-                ? 'bg-white text-blue-900 shadow-sm border border-slate-200'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-[#1C2230] text-sky-400 border border-slate-700'
+                : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -249,23 +251,20 @@ export const LoginPage = () => {
         </div>
 
         {/* Selected Role Indicator Pill */}
-        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-blue-50/70 border border-blue-100 text-xs">
-          <div className="flex items-center gap-1.5 text-blue-900 font-bold">
-            <CurrentRoleIcon className="w-4 h-4 text-blue-700" />
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#0F1115] border border-slate-800 text-xs">
+          <div className="flex items-center gap-1.5 text-slate-200 font-bold">
+            <CurrentRoleIcon className="w-4 h-4 text-sky-400" />
             <span>{roleMeta.title}</span>
           </div>
-          <span className="text-[10px] uppercase font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-100">
-            {activeRole}
+          <span className="text-[10px] uppercase font-bold text-sky-400 bg-[#151922] px-2 py-0.5 rounded border border-slate-800">
+            {roleMeta.badge}
           </span>
         </div>
 
         {/* Demo Credentials Quick-Fill Strip */}
-        <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3 space-y-2">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-bold text-slate-700 flex items-center gap-1">
-              <UserCheck className="w-3.5 h-3.5 text-blue-700" />
-              Quick-Fill Demo Credentials:
-            </span>
+        <div className="bg-[#0F1115] border border-slate-800 rounded-xl p-3 space-y-2">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+            <span>Demo Quick-Fill:</span>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
             <button
@@ -273,8 +272,8 @@ export const LoginPage = () => {
               onClick={fillDemoStudent}
               className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition text-center ${
                 activeRole === 'student' 
-                  ? 'bg-blue-900 text-white border-blue-900' 
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                  ? 'bg-sky-500 text-slate-950 border-sky-400' 
+                  : 'bg-[#151922] border-slate-800 text-slate-300 hover:text-white hover:bg-[#1A202C]'
               }`}
             >
               Student
@@ -284,8 +283,8 @@ export const LoginPage = () => {
               onClick={fillDemoTeacher}
               className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition text-center ${
                 activeRole === 'teacher' 
-                  ? 'bg-blue-900 text-white border-blue-900' 
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                  ? 'bg-sky-500 text-slate-950 border-sky-400' 
+                  : 'bg-[#151922] border-slate-800 text-slate-300 hover:text-white hover:bg-[#1A202C]'
               }`}
             >
               Teacher
@@ -295,8 +294,8 @@ export const LoginPage = () => {
               onClick={fillDemoAdmin}
               className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition text-center ${
                 activeRole === 'admin' 
-                  ? 'bg-blue-900 text-white border-blue-900' 
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                  ? 'bg-sky-500 text-slate-950 border-sky-400' 
+                  : 'bg-[#151922] border-slate-800 text-slate-300 hover:text-white hover:bg-[#1A202C]'
               }`}
             >
               Admin
@@ -304,60 +303,60 @@ export const LoginPage = () => {
           </div>
         </div>
 
-        {/* Error Alert */}
+        {/* Inline Error Alert */}
         {error && (
-          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+          <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2" role="alert">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* Main Authentication Form */}
+        {/* Authentication Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Institutional Email
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={roleMeta.placeholder}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-800 focus:border-transparent outline-none transition"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0F1115] border border-slate-800 text-sm text-[#E6EDF3] placeholder-slate-500 focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 outline-none transition"
               />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Password
               </label>
               <button
                 type="button"
                 onClick={() => setForgotModalOpen(true)}
-                className="text-xs text-blue-700 hover:text-blue-900 font-semibold"
+                className="text-xs text-sky-400 hover:text-sky-300 font-semibold focus:outline-none"
               >
                 Forgot Password?
               </button>
             </div>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-800 focus:border-transparent outline-none transition"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#0F1115] border border-slate-800 text-sm text-[#E6EDF3] placeholder-slate-500 focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 outline-none transition"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1 focus:outline-none"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -365,42 +364,43 @@ export const LoginPage = () => {
             </div>
           </div>
 
-          {/* Remember Me Checkbox */}
+          {/* Remember Me */}
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-blue-900 focus:ring-blue-800"
+                className="w-4 h-4 rounded border-slate-700 bg-[#0F1115] text-sky-500 focus:ring-sky-500/50"
               />
-              <span className="text-xs text-slate-600 font-medium">Remember institutional email</span>
+              <span className="text-xs text-slate-400 font-medium">Remember email</span>
             </label>
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-xl bg-blue-900 hover:bg-blue-950 text-white font-bold text-sm uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 mt-2"
+            className="w-full py-3 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 active:bg-sky-600 disabled:opacity-50 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-md hover:shadow-sky-500/20 transition-all flex items-center justify-center gap-2 mt-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
             id="login-submit-btn"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Authenticating Portal...</span>
+                <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                <span>Authenticating...</span>
               </>
             ) : (
               <>
-                <span>Sign In to {roleMeta.title.replace(' Login', '')}</span>
+                <span>Sign In to {roleMeta.title}</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
         </form>
 
-        <div className="text-center pt-3 border-t border-slate-100">
-          <p className="text-xs text-slate-500">
-            GL Bajaj Group of Institutions, Mathura • Examination Cell
+        <div className="text-center pt-3 border-t border-slate-800">
+          <p className="text-xs text-slate-400">
+            GL Bajaj Group of Institutions, Mathura
           </p>
         </div>
 
@@ -408,15 +408,15 @@ export const LoginPage = () => {
 
       {/* Forgot Password Modal */}
       {forgotModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-200">
-            <h3 className="text-lg font-bold text-slate-900">Institutional Password Reset</h3>
-            <p className="text-xs text-slate-600">
+        <div className="fixed inset-0 z-50 bg-[#0F1115]/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#151922] rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-800">
+            <h3 className="text-base font-bold text-[#E6EDF3]">Reset Password</h3>
+            <p className="text-xs text-slate-400">
               Enter your registered institutional email to receive verification instructions.
             </p>
 
             {forgotMsg && (
-              <div className="p-3 bg-blue-50 text-blue-900 text-xs rounded-xl border border-blue-200">
+              <div className="p-3 bg-[#0F1115] text-sky-400 text-xs rounded-xl border border-slate-800">
                 {forgotMsg}
               </div>
             )}
@@ -428,7 +428,7 @@ export const LoginPage = () => {
                 value={forgotEmail}
                 onChange={(e) => setForgotEmail(e.target.value)}
                 placeholder="registered@examsphere.com"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-800 outline-none"
+                className="w-full px-3.5 py-2 rounded-xl bg-[#0F1115] border border-slate-800 text-sm text-[#E6EDF3] placeholder-slate-500 focus:ring-2 focus:ring-sky-500/50 outline-none"
               />
               <div className="flex gap-2 justify-end pt-2">
                 <button
@@ -437,14 +437,14 @@ export const LoginPage = () => {
                     setForgotModalOpen(false);
                     setForgotMsg('');
                   }}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-white rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="px-4 py-2 text-xs font-bold text-white bg-blue-900 hover:bg-blue-950 rounded-lg shadow-xs"
+                  className="px-4 py-1.5 text-xs font-bold text-slate-950 bg-sky-500 hover:bg-sky-400 rounded-lg shadow-xs"
                 >
                   {forgotLoading ? 'Submitting...' : 'Send Reset Link'}
                 </button>

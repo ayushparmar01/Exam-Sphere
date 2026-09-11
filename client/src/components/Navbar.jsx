@@ -23,6 +23,7 @@ import {
   FileCheck,
   BarChart3,
   GraduationCap,
+  Users,
 } from 'lucide-react';
 
 export const Navbar = () => {
@@ -75,30 +76,31 @@ export const Navbar = () => {
     if (isTeacher) {
       navLinks = [
         { name: 'Dashboard', path: '/teacher/dashboard' },
-        { name: 'Question Bank', path: '/teacher/questions' },
-        { name: 'Create Exam', path: '/teacher/exams/create' },
-        { name: 'My Exams', path: '/teacher/exams' },
+        { name: 'Students', path: '/teacher/students' },
+        { name: 'Assignments', path: '/teacher/assignments' },
+        { name: 'Materials', path: '/teacher/materials' },
+        { name: 'Exams', path: '/teacher/exams' },
+        { name: 'Reports', path: '/teacher/reports' },
+        { name: 'Feedback', path: '/teacher/feedback' },
         { name: 'Live Proctoring', path: '/admin/monitoring', isLive: true },
-        { name: 'Results', path: '/teacher/results' },
-        { name: 'Analytics', path: '/teacher/analytics' },
       ];
     } else if (isAdmin) {
       navLinks = [
-        { name: 'Home', path: '/' },
-        { name: 'Exams', path: '/exams' },
+        { name: 'Dashboard', path: '/admin/dashboard' },
+        { name: 'Academic Setup', path: '/admin/academic' },
+        { name: 'Faculty Allocations', path: '/admin/teachers' },
+        { name: 'College Analytics', path: '/admin/analytics' },
+        { name: 'Exams', path: '/admin/exams' },
         { name: 'Live Proctoring', path: '/admin/monitoring', isLive: true },
-        { name: 'Leaderboard', path: '/leaderboard' },
-        { name: 'Schedule', path: '/schedule' },
       ];
     } else {
       // Student
       navLinks = [
-        { name: 'Home', path: '/' },
+        { name: 'My Academic Space', path: '/dashboard' },
         { name: 'Exams', path: '/exams' },
         { name: 'My Exams', path: '/my-exams' },
         { name: 'Leaderboard', path: '/leaderboard' },
         { name: 'Schedule', path: '/schedule' },
-        { name: 'Analytics', path: '/analytics' },
         { name: 'Mistakes', path: '/mistakes' },
       ];
     }
@@ -314,25 +316,46 @@ export const Navbar = () => {
                             My Exams
                           </Link>
                           <Link
+                            to="/teacher/students"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <Users className="w-4 h-4 text-slate-400" />
+                            My Students Roster
+                          </Link>
+                          <Link
+                            to="/teacher/assignments"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <FileCheck className="w-4 h-4 text-slate-400" />
+                            Assignments & Grading
+                          </Link>
+                          <Link
+                            to="/teacher/materials"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <BookOpen className="w-4 h-4 text-slate-400" />
+                            Study Materials
+                          </Link>
+                          <Link
+                            to="/teacher/reports"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <BarChart3 className="w-4 h-4 text-slate-400" />
+                            Reports & Exports
+                          </Link>
+                          <Link
+                            to="/teacher/feedback"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <Award className="w-4 h-4 text-slate-400" />
+                            Student Feedback
+                          </Link>
+                          <Link
                             to="/admin/monitoring"
                             className="flex items-center gap-2.5 px-4 py-2 text-sm text-indigo-600 font-semibold hover:bg-indigo-50"
                           >
                             <Activity className="w-4 h-4 text-indigo-600 animate-pulse" />
                             Live Proctoring Center
-                          </Link>
-                          <Link
-                            to="/teacher/results"
-                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                          >
-                            <FileCheck className="w-4 h-4 text-slate-400" />
-                            Student Results
-                          </Link>
-                          <Link
-                            to="/teacher/analytics"
-                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                          >
-                            <BarChart3 className="w-4 h-4 text-slate-400" />
-                            Exam Analytics
                           </Link>
                         </div>
                       )}
@@ -341,18 +364,32 @@ export const Navbar = () => {
                       {isAdmin && (
                         <div className="border-t border-slate-100 my-1 pt-1">
                           <Link
+                            to="/admin/academic"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <GraduationCap className="w-4 h-4 text-slate-400" />
+                            Academic Hierarchy
+                          </Link>
+                          <Link
+                            to="/admin/teachers"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <Users className="w-4 h-4 text-slate-400" />
+                            Faculty Allocations
+                          </Link>
+                          <Link
+                            to="/admin/analytics"
+                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            <BarChart3 className="w-4 h-4 text-slate-400" />
+                            College Analytics
+                          </Link>
+                          <Link
                             to="/admin/monitoring"
                             className="flex items-center gap-2.5 px-4 py-2 text-sm text-indigo-600 font-semibold hover:bg-indigo-50"
                           >
                             <Activity className="w-4 h-4 text-indigo-600 animate-pulse" />
                             Live Proctoring Center
-                          </Link>
-                          <Link
-                            to="/admin/questions"
-                            className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                          >
-                            <BookOpen className="w-4 h-4 text-slate-400" />
-                            Question Bank
                           </Link>
                           <Link
                             to="/admin/exams"

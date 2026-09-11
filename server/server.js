@@ -24,6 +24,12 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+const academicRoutes = require('./routes/academicRoutes');
+const assignmentRoutes = require('./routes/assignmentRoutes');
+const materialRoutes = require('./routes/materialRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
+const feedbackRoutes = require('./routes/feedbackRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const graphqlRouter = require('./graphql');
 
 const app = express();
@@ -83,6 +89,12 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/academic', academicRoutes);
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/materials', materialRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Mount Selective GraphQL Endpoint
 app.use('/graphql', graphqlRouter);

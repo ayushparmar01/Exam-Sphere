@@ -34,9 +34,17 @@ import { TeacherCreateExamPage } from './pages/teacher/TeacherCreateExamPage';
 import { TeacherExamsPage } from './pages/teacher/TeacherExamsPage';
 import { TeacherResultsPage } from './pages/teacher/TeacherResultsPage';
 import { TeacherAnalyticsPage } from './pages/teacher/TeacherAnalyticsPage';
+import { TeacherStudentsPage } from './pages/teacher/TeacherStudentsPage';
+import { TeacherAssignmentsPage } from './pages/teacher/TeacherAssignmentsPage';
+import { TeacherMaterialsPage } from './pages/teacher/TeacherMaterialsPage';
+import { TeacherReportsPage } from './pages/teacher/TeacherReportsPage';
+import { TeacherFeedbackPage } from './pages/teacher/TeacherFeedbackPage';
 
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { AdminAcademicManagementPage } from './pages/admin/AdminAcademicManagementPage';
+import { AdminTeacherAssignmentsPage } from './pages/admin/AdminTeacherAssignmentsPage';
+import { AdminCollegeAnalyticsPage } from './pages/admin/AdminCollegeAnalyticsPage';
 import { AdminQuestionsPage } from './pages/admin/AdminQuestionsPage';
 import { AdminBulkUploadPage } from './pages/admin/AdminBulkUploadPage';
 import { AdminExamsPage } from './pages/admin/AdminExamsPage';
@@ -49,14 +57,19 @@ import AdminCandidateDetailPage from './pages/admin/AdminCandidateDetailPage';
 
 const AppLayout = () => {
   const location = useLocation();
-  // Hide global Navbar & Footer during active exam attempts, on the institutional landing page, and role selection
+  // Institutional dark entry portal pages
+  const isDarkPortalPage = 
+    location.pathname === '/' || 
+    location.pathname === '/role-select' || 
+    location.pathname === '/login';
+
+  // Hide global Navbar & Footer during active exam attempts and on the institutional dark portal pages
   const hideGlobalChrome = 
     location.pathname.includes('/attempt/') || 
-    location.pathname === '/' || 
-    location.pathname === '/role-select';
+    isDarkPortalPage;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
+    <div className={`min-h-screen flex flex-col font-sans ${isDarkPortalPage ? 'bg-[#0F1115] text-[#E6EDF3]' : 'bg-slate-50 text-slate-900'}`}>
       {!hideGlobalChrome && <Navbar />}
       <main className="flex-1">
         <Routes>
@@ -195,6 +208,46 @@ const AppLayout = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/teacher/students"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherStudentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/assignments"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherAssignmentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/materials"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherMaterialsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/reports"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+                <TeacherFeedbackPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin Protected Routes */}
           <Route
@@ -202,6 +255,30 @@ const AppLayout = () => {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/academic"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminAcademicManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/teachers"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminTeacherAssignmentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminCollegeAnalyticsPage />
               </ProtectedRoute>
             }
           />

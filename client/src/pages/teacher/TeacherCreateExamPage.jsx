@@ -78,6 +78,10 @@ export const TeacherCreateExamPage = () => {
     endTime: '',
     allowRetake: false,
     maximumAttempts: 1,
+    targetScope: 'SECTION',
+    targetDepartment: 'CSE',
+    targetYear: 3,
+    targetSections: ['A'],
 
     // Step 2: Questions
     questions: [], // array of question IDs
@@ -248,6 +252,10 @@ export const TeacherCreateExamPage = () => {
         fullscreenRequired: formData.fullscreenRequired,
         maxFullscreenExits: Number(formData.maxFullscreenExits) || 3,
         terminateAfterFullscreenExits: formData.terminateAfterFullscreenExits,
+        targetScope: formData.targetScope,
+        targetDepartment: formData.targetDepartment,
+        targetYear: formData.targetYear,
+        targetSections: formData.targetSections,
         status: statusChoice,
       };
 
@@ -462,6 +470,96 @@ export const TeacherCreateExamPage = () => {
                     onChange={(e) => setFormData({ ...formData, maximumAttempts: e.target.value })}
                     className="w-16 px-2 py-1 rounded-lg border border-slate-300"
                   />
+                </div>
+              )}
+            </div>
+
+            {/* College Academic Scope Targeting */}
+            <div className="pt-4 border-t border-slate-100 space-y-3">
+              <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                Institutional Academic Scope Targeting
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Target Scope *
+                  </label>
+                  <select
+                    value={formData.targetScope}
+                    onChange={(e) => setFormData({ ...formData, targetScope: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none"
+                  >
+                    <option value="SECTION">Specific Section (e.g. CSE 3rd Year Sec A)</option>
+                    <option value="SECTIONS">Multiple Sections (e.g. Sec A & B)</option>
+                    <option value="YEAR">Entire Year (e.g. All CSE 3rd Year)</option>
+                    <option value="DEPARTMENT">Entire Department (e.g. All CSE)</option>
+                    <option value="COLLEGE">College-Wide (All Departments & Years)</option>
+                  </select>
+                </div>
+
+                {formData.targetScope !== 'COLLEGE' && (
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Department
+                    </label>
+                    <select
+                      value={formData.targetDepartment}
+                      onChange={(e) => setFormData({ ...formData, targetDepartment: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none"
+                    >
+                      <option value="CSE">Computer Science & Engineering (CSE)</option>
+                      <option value="IT">Information Technology (IT)</option>
+                      <option value="ECE">Electronics & Communication (ECE)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {(formData.targetScope === 'SECTION' || formData.targetScope === 'SECTIONS' || formData.targetScope === 'YEAR') && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Year
+                    </label>
+                    <select
+                      value={formData.targetYear}
+                      onChange={(e) => setFormData({ ...formData, targetYear: Number(e.target.value) })}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 outline-none"
+                    >
+                      <option value={1}>1st Year</option>
+                      <option value={2}>2nd Year</option>
+                      <option value={3}>3rd Year</option>
+                      <option value={4}>4th Year</option>
+                    </select>
+                  </div>
+
+                  {(formData.targetScope === 'SECTION' || formData.targetScope === 'SECTIONS') && (
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Section(s)
+                      </label>
+                      <div className="flex items-center gap-4 pt-1">
+                        {['A', 'B', 'C'].map((sec) => (
+                          <label key={sec} className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.targetSections?.includes(sec)}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const cur = formData.targetSections || [];
+                                const updated = checked
+                                  ? [...cur, sec]
+                                  : cur.filter((s) => s !== sec);
+                                setFormData({ ...formData, targetSections: updated.length ? updated : [sec] });
+                              }}
+                              className="rounded text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="font-semibold text-slate-700">Section {sec}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

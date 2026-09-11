@@ -5,34 +5,30 @@ import { TrustSection } from '../components/landing/TrustSection';
 import { FeatureSection } from '../components/landing/FeatureSection';
 import { SecuritySection } from '../components/landing/SecuritySection';
 import { HowItWorks } from '../components/landing/HowItWorks';
-import { InstitutionalContact } from '../components/landing/InstitutionalContact';
 import { InstitutionalFooter } from '../components/landing/InstitutionalFooter';
 
 export const LandingPage = () => {
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-blue-900 selection:text-white">
-      {/* Top Institutional Header */}
+    <div className="min-h-screen bg-[#0F1115] text-[#E6EDF3] font-sans selection:bg-sky-500 selection:text-slate-950">
+      {/* Top Navbar */}
       <InstitutionalNavbar />
 
-      {/* Main Page Sections */}
+      {/* Main Content Sections */}
       <main>
-        {/* 1. Hero Section with Institutional Hierarchy & Interface Mockup */}
+        {/* 1. Hero Section */}
         <Hero />
 
-        {/* 2. Trust / Built for GL Bajaj Pillar Section */}
+        {/* 2. Trust / Institutional Role Support Section */}
         <TrustSection />
 
-        {/* 3. Core Features Section (6 Institutional Assessment Capabilities) */}
+        {/* 3. Core Feature Capabilities Section */}
         <FeatureSection />
 
-        {/* 4. Exam Security & Integrity Signals Section */}
+        {/* 4. Examination Security Architecture Section */}
         <SecuritySection />
 
-        {/* 5. 4-Step How It Works Workflow Timeline */}
+        {/* 5. 4-Step How It Works Workflow Section */}
         <HowItWorks />
-
-        {/* 6. Institutional Campus & Helpdesk Info */}
-        <InstitutionalContact />
       </main>
 
       {/* Institutional Footer */}

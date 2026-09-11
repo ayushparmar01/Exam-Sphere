@@ -1,88 +1,79 @@
 import React from 'react';
-import { LogIn, MonitorPlay, Activity, Award, ArrowRight } from 'lucide-react';
+import { LogIn, FileText, MonitorCheck, Award } from 'lucide-react';
 
 export const HowItWorks = () => {
   const steps = [
     {
       step: '01',
-      title: 'LOGIN',
-      subtitle: 'Secure Authentication',
-      description: 'Student, Teacher or Administrator securely signs in with institutional credentials.',
+      title: 'Login',
+      description: 'Sign in using your authorized account.',
       icon: LogIn,
     },
     {
       step: '02',
-      title: 'EXAM',
-      subtitle: 'Controlled Environment',
-      description: 'Students access assigned examinations through a controlled, timed exam environment.',
-      icon: MonitorPlay,
+      title: 'Select Examination',
+      description: 'Access available examinations assigned to your role.',
+      icon: FileText,
     },
     {
       step: '03',
-      title: 'MONITOR',
-      subtitle: 'Integrity Signals',
-      description: 'Configured integrity signals and examination events are monitored during the attempt.',
-      icon: Activity,
+      title: 'Take Examination',
+      description: 'Complete the assessment through the secure examination interface.',
+      icon: MonitorCheck,
     },
     {
       step: '04',
-      title: 'RESULT',
-      subtitle: 'Instant Evaluation',
-      description: 'Results, performance analytics and verified reports are generated after submission.',
+      title: 'Review Performance',
+      description: 'Access permitted results, rankings and performance insights.',
       icon: Award,
     },
   ];
 
   return (
-    <section id="how-it-works" className="py-20 bg-white border-b border-slate-200">
+    <section id="how-it-works" className="py-20 bg-[#0F1115] border-b border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-            System Lifecycle
+          <span className="inline-flex items-center px-3 py-1 rounded-md bg-[#151922] border border-slate-800 text-sky-400 text-xs font-semibold uppercase tracking-wider">
+            Workflow Process
           </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            How GLB ExamSphere Works
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#E6EDF3] tracking-tight">
+            How It Works
           </h2>
-          <p className="text-base text-slate-600">
-            A standardized, seamless 4-step assessment workflow built for high-stakes institutional evaluations.
+          <p className="text-sm text-slate-400 leading-relaxed">
+            A straightforward, synchronized 4-step assessment workflow.
           </p>
         </div>
 
-        {/* Timeline: Horizontal on Desktop, Vertical on Mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+        {/* Timeline Grid: Horizontal on Desktop, Vertical on Mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
           
-          {/* Desktop Connecting Line */}
-          <div className="hidden md:block absolute top-12 left-12 right-12 h-0.5 bg-blue-100 -z-0" />
+          {/* Subtle connecting line on desktop */}
+          <div className="hidden md:block absolute top-10 left-12 right-12 h-px bg-slate-800/80 -z-0" />
 
           {steps.map((s, idx) => {
             const Icon = s.icon;
             return (
               <div 
                 key={idx} 
-                className="relative z-10 flex flex-col items-center md:items-start text-center md:text-left group"
+                className="relative z-10 flex flex-col items-center md:items-start text-center md:text-left"
               >
-                {/* Step Circle with Number Badge */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-900 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <Icon className="w-6 h-6 text-blue-200" />
+                {/* Step Marker Badge */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-lg bg-[#151922] border border-slate-800 flex items-center justify-center text-sky-400">
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <span className="text-2xl font-black font-mono text-blue-950/20 group-hover:text-blue-900 transition-colors">
+                  <span className="text-xl font-bold font-mono text-slate-500">
                     {s.step}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-6 w-full space-y-2 hover:bg-white hover:shadow-md hover:border-blue-300 transition-all duration-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
-                      {s.title}
-                    </h3>
-                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                      {s.subtitle}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">
+                <div className="bg-[#151922] border border-slate-800 rounded-xl p-5 w-full space-y-2 hover:border-slate-700 transition-colors">
+                  <h3 className="text-sm font-bold text-[#E6EDF3] tracking-tight">
+                    {s.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
                     {s.description}
                   </p>
                 </div>

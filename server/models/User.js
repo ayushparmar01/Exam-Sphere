@@ -38,6 +38,61 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    rollNumber: {
+      type: String,
+      trim: true,
+      default: '',
+      index: true,
+    },
+    enrollmentNumber: {
+      type: String,
+      trim: true,
+      default: '',
+      index: true,
+    },
+    program: {
+      type: String,
+      trim: true,
+      default: 'B.Tech',
+    },
+    course: {
+      type: String,
+      trim: true,
+      default: 'CSE',
+      index: true,
+    },
+    semester: {
+      type: Number,
+      default: 5,
+      min: 1,
+      max: 10,
+      index: true,
+    },
+    year: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 5,
+      index: true,
+    },
+    section: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: 'A',
+      index: true,
+    },
+    academicYear: {
+      type: String,
+      trim: true,
+      default: '2025-26',
+    },
+    permissions: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     avatar: {
       type: String,
       default: '',

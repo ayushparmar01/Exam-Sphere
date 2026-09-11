@@ -91,7 +91,65 @@ const examSchema = new mongoose.Schema(
       hardPercent: { type: Number, default: 20 },
       topicDistribution: { type: Map, of: Number, default: {} },
     },
-    // Specific Students Assigned to this Exam (empty array = all eligible students)
+    // Academic Targeting Configuration
+    targetScope: {
+      type: String,
+      enum: ['COLLEGE', 'DEPARTMENT', 'YEAR', 'SECTION', 'INDIVIDUAL'],
+      default: 'COLLEGE',
+      index: true,
+    },
+    targetDepartment: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    targetCourse: {
+      type: String,
+      trim: true,
+      default: 'B.Tech',
+    },
+    targetYear: {
+      type: Number,
+      default: null,
+    },
+    targetSections: [
+      {
+        type: String,
+        trim: true,
+        uppercase: true,
+      },
+    ],
+    targetSemester: {
+      type: Number,
+      default: null,
+    },
+    academicYear: {
+      type: String,
+      trim: true,
+      default: '2025-26',
+    },
+    resultPublished: {
+      type: Boolean,
+      default: true,
+    },
+    teacherComments: [
+      {
+        studentId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        comment: {
+          type: String,
+          trim: true,
+        },
+        authorName: String,
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    // Specific Students Assigned to this Exam (empty array = all eligible students in scope)
     assignedStudents: [
       {
         type: mongoose.Schema.Types.ObjectId,

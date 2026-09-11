@@ -1,101 +1,71 @@
 import React from 'react';
-import { Shield, RefreshCw, Cpu, CheckCircle } from 'lucide-react';
+import { GraduationCap, BookOpen, ShieldCheck } from 'lucide-react';
 
 export const TrustSection = () => {
-  const pillars = [
+  const roles = [
     {
-      title: 'Secure',
-      icon: Shield,
-      color: 'blue',
-      badge: 'Protected Integrity',
-      description:
-        'Role-based authentication, protected examination sessions and integrity monitoring.',
-      highlights: [
-        'JWT & role verification',
-        'Controlled fullscreen enforcement',
-        'Secure token lifecycle',
-      ],
+      title: 'Student',
+      description: 'Take exams, save answers, view results and track performance.',
+      icon: GraduationCap,
+      label: 'Candidate Portal',
     },
     {
-      title: 'Reliable',
-      icon: RefreshCw,
-      color: 'emerald',
-      badge: 'Zero Answer Loss',
-      description:
-        'Server-authoritative sessions, autosave and recovery mechanisms designed to reduce answer loss.',
-      highlights: [
-        'Debounced answer synchronization',
-        'Persistent offline/reconnect recovery',
-        'Authoritative server clock',
-      ],
+      title: 'Teacher',
+      description: 'Create and manage examinations, questions and assessments.',
+      icon: BookOpen,
+      label: 'Faculty Portal',
     },
     {
-      title: 'Intelligent',
-      icon: Cpu,
-      color: 'indigo',
-      badge: 'Modern Workflows',
-      description:
-        'Assessment analytics and AI-assisted capabilities to support modern examination workflows.',
-      highlights: [
-        'Topic-wise performance diagnostics',
-        'Assisted question generation',
-        'Instant cohort analytics',
-      ],
+      title: 'Administrator',
+      description: 'Manage users, examinations, monitoring and platform operations.',
+      icon: ShieldCheck,
+      label: 'Administration Portal',
     },
   ];
 
   return (
-    <section id="about" className="py-16 sm:py-20 bg-white border-b border-slate-200">
+    <section id="about" className="py-16 sm:py-20 bg-[#0F1115] border-b border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-800 text-xs font-bold uppercase tracking-wider">
-            Institutional Standard
+        <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+          <span className="inline-flex items-center px-3 py-1 rounded-md bg-[#151922] border border-slate-800 text-sky-400 text-xs font-semibold uppercase tracking-wider">
+            Institutional Support
           </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Built for Digital Examination at GL Bajaj
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#E6EDF3] tracking-tight">
+            Built for the Entire Institution
           </h2>
-          <p className="text-base text-slate-600 leading-relaxed">
-            GLB ExamSphere provides a centralized environment for conducting, managing and monitoring digital assessments with a focus on reliability, security and a better examination experience.
+          <p className="text-sm text-slate-400 leading-relaxed">
+            GLB ExamSphere provides a dedicated, structured environment to support students, faculty, and administrative staff across GL Bajaj.
           </p>
         </div>
 
-        {/* 3 Pillar Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {pillars.map((p, idx) => {
-            const Icon = p.icon;
+        {/* 3 Role Support Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+          {roles.map((r, idx) => {
+            const Icon = r.icon;
             return (
               <div
                 key={idx}
-                className="relative rounded-2xl border border-slate-200/90 bg-slate-50/50 p-8 hover:bg-white hover:shadow-xl hover:border-blue-200 transition-all duration-200 flex flex-col justify-between group"
+                className="bg-[#151922] rounded-xl border border-slate-800 p-7 hover:border-slate-700 transition-colors flex flex-col justify-between"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="w-12 h-12 rounded-xl bg-blue-900 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                      <Icon className="w-6 h-6 text-blue-200" />
+                    <div className="w-11 h-11 rounded-lg bg-[#0F1115] border border-slate-800 flex items-center justify-center text-sky-400">
+                      <Icon className="w-5 h-5" />
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
-                      {p.badge}
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-[#0F1115] px-2 py-0.5 rounded border border-slate-800">
+                      {r.label}
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-                    {p.title}
+                  <h3 className="text-lg font-bold text-[#E6EDF3] tracking-tight">
+                    {r.title}
                   </h3>
 
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    {p.description}
+                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    {r.description}
                   </p>
-                </div>
-
-                <div className="pt-6 mt-6 border-t border-slate-200/60 space-y-2">
-                  {p.highlights.map((item, hIdx) => (
-                    <div key={hIdx} className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             );

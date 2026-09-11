@@ -5,6 +5,11 @@ const ExamSession = require('../models/ExamSession');
 const ExamIntegrityEvent = require('../models/ExamIntegrityEvent');
 const Result = require('../models/Result');
 const Notification = require('../models/Notification');
+const Assignment = require('../models/Assignment');
+const AssignmentSubmission = require('../models/AssignmentSubmission');
+const StudyMaterial = require('../models/StudyMaterial');
+const TeacherSectionAssignment = require('../models/TeacherSectionAssignment');
+const academicService = require('../services/academicService');
 const { getLeaderboard } = require('../services/leaderboardService');
 
 const requireAuth = (context) => {
@@ -254,6 +259,204 @@ const rootResolver = {
       isRead: n.isRead,
       createdAt: n.createdAt.toISOString(),
     }));
+  },
+
+  // Student Academic Space
+  async studentAcademicSpace(args, context) {
+    requireAuth(context);
+    const user = await User.findById(context.user._id).select('-passwordHash');
+    if (!user) throw new Error('User not found');
+
+    const now = new Date();
+    const scopeFilter = [
+      { targetScope: 'COLLEGE' },
+      { targetScope: 'DEPARTMENT', targetDepartment: user.department },
+      { targetScope: 'YEAR', targetDepartment: user.department, targetYear: user.year },
+      { targetScope: 'SECTION', targetDepartment: user.department, targetYear: user.year, targetSections: user.section },
+      { targetScope: 'SECTIONS', targetDepartment: user.department, targetYear: user.year, targetSections: user.section },
+    ];
+
+    const exams = await Exam.find({
+      $or: scopeFilter,
+      status: { $in: ['SCHEDULED', 'LIVE', 'PUBLISHED'] },
+    }).sort({ startTime: 1 });
+
+    const upcomingExams = exams
+      .filter((e) => new Date(e.startTime) > now && e.status === 'SCHEDULED')
+      .map((e) => ({
+        id: e._id.toString(),
+        title: e.title,
+        subject: e.subject,
+        duration: e.duration,
+        totalMarks: e.totalMarks,
+        startTime: e.startTime ? e.startTime.toISOString() : null,
+        endTime: e.endTime ? e.endTime.toISOString() : null,
+        targetScope: e.targetScope,
+        status: e.status,
+      }));
+
+    const activeExams = exams
+      .filter((e) => e.status === 'LIVE' || (new Date(e.startTime) <= now && new Date(e.endTime) >= now))
+      .map((e) => ({
+        id: e._id.toString(),
+        title: e.title,
+        subject: e.subject,
+        duration: e.duration,
+        totalMarks: e.totalMarks,
+        startTime: e.startTime ? e.startTime.toISOString() : null,
+        endTime: e.endTime ? e.endTime.toISOString() : null,
+        targetScope: e.targetScope,
+        status: e.status,
+      }));
+
+    // Assignments
+    const assignments = await Assignment.find({
+      $or: [
+        { scope: 'COLLEGE' },
+        { scope: 'DEPARTMENT', department: user.department },
+        { scope: 'YEAR', department: user.department, year: user.year },
+        { scope: 'SECTION', department: user.department, year: user.year, section: user.section },
+      ],
+      status: 'PUBLISHED',
+    }).sort({ dueDate: 1 });
+
+    const assignmentIds = assignments.map((a) => a._id);
+    const submissions = await AssignmentSubmission.find({
+      assignmentId: { $in: assignmentIds },
+      studentId: user._id,
+    });
+    const submittedMap = new Set(submissions.map((s) => s.assignmentId.toString()));
+
+    const pendingAssignments = assignments.map((a) => ({
+      id: a._id.toString(),
+      title: a.title,
+      subject: a.subject,
+      dueDate: a.dueDate.toISOString(),
+      maxMarks: a.maxMarks,
+      status: a.status,
+      isSubmitted: submittedMap.has(a._id.toString()),
+    }));
+
+    // Diagnostic topic performance
+    const results = await Result.find({ studentId: user._id }).sort({ createdAt: -1 }).limit(10);
+    const topicMap = {};
+    results.forEach((r) => {
+      if (r.topicPerformance && Array.isArray(r.topicPerformance)) {
+        r.topicPerformance.forEach((tp) => {
+          if (!topicMap[tp.topic]) {
+            topicMap[tp.topic] = { topic: tp.topic, subject: tp.subject, total: 0, correct: 0 };
+          }
+          topicMap[tp.topic].total += tp.totalQuestions || 1;
+          topicMap[tp.topic].correct += tp.correct || 0;
+        });
+      }
+    });
+
+    const needsRevisionTopics = Object.values(topicMap)
+      .map((t) => ({
+        topic: t.topic,
+        subject: t.subject || 'General',
+        accuracy: t.total > 0 ? Math.round((t.correct / t.total) * 100) : 0,
+        attempts: t.total,
+      }))
+      .filter((t) => t.accuracy < 60)
+      .sort((a, b) => a.accuracy - b.accuracy)
+      .slice(0, 5);
+
+    const studyMaterialsCount = await StudyMaterial.countDocuments({
+      status: 'ACTIVE',
+      $or: [
+        { department: user.department, year: user.year },
+        { department: 'ALL' },
+      ],
+    });
+
+    return {
+      student: {
+        id: user._id.toString(),
+        name: user.name,
+        rollNumber: user.rollNumber || 'N/A',
+        department: user.department || 'CSE',
+        program: user.program || 'B.Tech',
+        year: user.year || 1,
+        section: user.section || 'A',
+      },
+      upcomingExams,
+      activeExams,
+      pendingAssignments,
+      needsRevisionTopics,
+      studyMaterialsCount,
+    };
+  },
+
+  // Teacher Academic Dashboard
+  async teacherAcademicDashboard(args, context) {
+    requireAuth(context);
+    if (!['TEACHER', 'ADMIN'].includes(context.user.role)) {
+      throw new Error('Teacher or Admin authorization required');
+    }
+
+    const assignedSections = await TeacherSectionAssignment.find({
+      teacherId: context.user._id,
+      status: 'ACTIVE',
+    });
+
+    const teacherAssignments = await Assignment.find({ createdBy: context.user._id });
+    const teacherAssignmentIds = teacherAssignments.map((a) => a._id);
+
+    const pendingSubmissionsCount = await AssignmentSubmission.countDocuments({
+      assignmentId: { $in: teacherAssignmentIds },
+      status: 'SUBMITTED',
+    });
+
+    const activeExamsCount = await Exam.countDocuments({
+      createdBy: context.user._id,
+      status: { $in: ['SCHEDULED', 'LIVE'] },
+    });
+
+    let totalStudents = 0;
+    if (assignedSections.length > 0) {
+      const orConditions = assignedSections.map((as) => ({
+        department: as.departmentCode,
+        year: as.year,
+        section: as.sectionName,
+      }));
+      totalStudents = await User.countDocuments({
+        role: 'STUDENT',
+        $or: orConditions,
+      });
+    }
+
+    return {
+      assignedSections: assignedSections.map((as) => ({
+        id: as._id.toString(),
+        departmentCode: as.departmentCode,
+        year: as.year,
+        sectionName: as.sectionName,
+        subject: as.subject,
+      })),
+      totalStudents,
+      pendingSubmissionsCount,
+      activeExamsCount,
+    };
+  },
+
+  // Section Analytics
+  async sectionAnalytics({ department, year, sectionName }, context) {
+    requireAuth(context);
+    return await academicService.getSectionAnalytics({ department, year, sectionName });
+  },
+
+  // Year Analytics
+  async yearAnalytics({ department, year }, context) {
+    requireAuth(context);
+    return await academicService.getYearAnalytics({ department, year });
+  },
+
+  // College Academic Analytics
+  async collegeAcademicAnalytics(args, context) {
+    requireAdmin(context);
+    return await academicService.getCollegeAnalytics();
   },
 
   // Mutations

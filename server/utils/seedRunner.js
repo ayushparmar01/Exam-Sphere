@@ -9,6 +9,15 @@ const ExamSession = require('../models/ExamSession');
 const Result = require('../models/Result');
 const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
+const Department = require('../models/Department');
+const Section = require('../models/Section');
+const TeacherSectionAssignment = require('../models/TeacherSectionAssignment');
+const Assignment = require('../models/Assignment');
+const AssignmentSubmission = require('../models/AssignmentSubmission');
+const StudyMaterial = require('../models/StudyMaterial');
+const Announcement = require('../models/Announcement');
+const Feedback = require('../models/Feedback');
+const SystemSetting = require('../models/SystemSetting');
 const { sampleQuestions } = require('./seedData');
 const { calculateResultData } = require('../services/scoringService');
 
@@ -28,13 +37,63 @@ const runSeed = async () => {
       Result.deleteMany({}),
       Notification.deleteMany({}),
       AuditLog.deleteMany({}),
+      Department.deleteMany({}),
+      Section.deleteMany({}),
+      TeacherSectionAssignment.deleteMany({}),
+      Assignment.deleteMany({}),
+      AssignmentSubmission.deleteMany({}),
+      StudyMaterial.deleteMany({}),
+      Announcement.deleteMany({}),
+      Feedback.deleteMany({}),
+      SystemSetting.deleteMany({}),
     ]);
 
-    // 1. Create Admin
+    // 1. Create System Setting for Teacher Section Limit
+    await SystemSetting.create({
+      key: 'maxTeachersPerSection',
+      value: 5,
+      description: 'Maximum number of teachers that can be assigned to a single section',
+    });
+
+    // 2. Seed Academic Departments & Sections
+    const depts = await Department.create([
+      {
+        name: 'Computer Science & Engineering',
+        code: 'CSE',
+        programs: ['B.Tech', 'M.Tech'],
+        years: [1, 2, 3, 4],
+        status: 'ACTIVE',
+      },
+      {
+        name: 'Information Technology',
+        code: 'IT',
+        programs: ['B.Tech'],
+        years: [1, 2, 3, 4],
+        status: 'ACTIVE',
+      },
+      {
+        name: 'Electronics & Communication Engineering',
+        code: 'ECE',
+        programs: ['B.Tech'],
+        years: [1, 2, 3, 4],
+        status: 'ACTIVE',
+      },
+    ]);
+
+    const sections = await Section.create([
+      { departmentCode: 'CSE', program: 'B.Tech', year: 3, sectionName: 'A', academicYear: '2025-2026', studentCount: 65 },
+      { departmentCode: 'CSE', program: 'B.Tech', year: 3, sectionName: 'B', academicYear: '2025-2026', studentCount: 62 },
+      { departmentCode: 'CSE', program: 'B.Tech', year: 3, sectionName: 'C', academicYear: '2025-2026', studentCount: 60 },
+      { departmentCode: 'CSE', program: 'B.Tech', year: 2, sectionName: 'A', academicYear: '2025-2026', studentCount: 64 },
+      { departmentCode: 'CSE', program: 'B.Tech', year: 2, sectionName: 'B', academicYear: '2025-2026', studentCount: 63 },
+      { departmentCode: 'IT', program: 'B.Tech', year: 3, sectionName: 'A', academicYear: '2025-2026', studentCount: 58 },
+      { departmentCode: 'IT', program: 'B.Tech', year: 3, sectionName: 'B', academicYear: '2025-2026', studentCount: 57 },
+    ]);
+
+    // 3. Create Admin
     const salt = await bcrypt.genSalt(10);
     const adminPasswordHash = await bcrypt.hash('Admin@123', salt);
     const studentPasswordHash = await bcrypt.hash('Student@123', salt);
-
     const teacherPasswordHash = await bcrypt.hash('Teacher@123', salt);
 
     const admin = await User.create({
@@ -45,23 +104,57 @@ const runSeed = async () => {
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     });
 
-    // 2. Create Teacher
+    // 4. Create Teacher
     const teacher = await User.create({
       name: 'Prof. Alan Turing',
       email: 'teacher@examsphere.com',
       passwordHash: teacherPasswordHash,
       role: 'TEACHER',
-      department: 'Computer Science & Engineering',
+      department: 'CSE',
       designation: 'Associate Professor',
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
     });
 
-    // 3. Create Students
+    // Assign Teacher to Sections
+    const cseYear3SecA = sections.find((s) => s.departmentCode === 'CSE' && s.year === 3 && s.sectionName === 'A');
+    const cseYear3SecB = sections.find((s) => s.departmentCode === 'CSE' && s.year === 3 && s.sectionName === 'B');
+
+    await TeacherSectionAssignment.create([
+      {
+        teacherId: teacher._id,
+        sectionId: cseYear3SecA._id,
+        departmentCode: 'CSE',
+        year: 3,
+        sectionName: 'A',
+        subject: 'Data Structures & Algorithms',
+        academicYear: '2025-2026',
+        assignedBy: admin._id,
+      },
+      {
+        teacherId: teacher._id,
+        sectionId: cseYear3SecB._id,
+        departmentCode: 'CSE',
+        year: 3,
+        sectionName: 'B',
+        subject: 'Data Structures & Algorithms',
+        academicYear: '2025-2026',
+        assignedBy: admin._id,
+      },
+    ]);
+
+    // 5. Create Students with full academic profile
     const student = await User.create({
       name: 'Alex Rivera',
       email: 'student@examsphere.com',
       passwordHash: studentPasswordHash,
       role: 'STUDENT',
+      rollNumber: '2101330100042',
+      enrollmentNumber: 'GLB21CS042',
+      department: 'CSE',
+      program: 'B.Tech',
+      year: 3,
+      section: 'A',
+      academicYear: '2025-2026',
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
     });
 
@@ -71,6 +164,13 @@ const runSeed = async () => {
         email: 'sarah@examsphere.com',
         passwordHash: studentPasswordHash,
         role: 'STUDENT',
+        rollNumber: '2101330100088',
+        enrollmentNumber: 'GLB21CS088',
+        department: 'CSE',
+        program: 'B.Tech',
+        year: 3,
+        section: 'A',
+        academicYear: '2025-2026',
         avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
       },
       {
@@ -78,6 +178,13 @@ const runSeed = async () => {
         email: 'marcus@examsphere.com',
         passwordHash: studentPasswordHash,
         role: 'STUDENT',
+        rollNumber: '2101330100065',
+        enrollmentNumber: 'GLB21CS065',
+        department: 'CSE',
+        program: 'B.Tech',
+        year: 3,
+        section: 'A',
+        academicYear: '2025-2026',
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
       },
       {
@@ -85,6 +192,13 @@ const runSeed = async () => {
         email: 'priya@examsphere.com',
         passwordHash: studentPasswordHash,
         role: 'STUDENT',
+        rollNumber: '2101330100091',
+        enrollmentNumber: 'GLB21CS091',
+        department: 'CSE',
+        program: 'B.Tech',
+        year: 3,
+        section: 'B',
+        academicYear: '2025-2026',
         avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
       },
       {
@@ -92,11 +206,18 @@ const runSeed = async () => {
         email: 'david@examsphere.com',
         passwordHash: studentPasswordHash,
         role: 'STUDENT',
+        rollNumber: '2101330100034',
+        enrollmentNumber: 'GLB21CS034',
+        department: 'CSE',
+        program: 'B.Tech',
+        year: 3,
+        section: 'B',
+        academicYear: '2025-2026',
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
       },
     ]);
 
-    console.log(`[Seed] Created 1 Admin, 1 Teacher, and ${peers.length + 1} Students.`);
+    console.log(`[Seed] Created 1 Admin, 1 Teacher (assigned to 2 sections), and ${peers.length + 1} Academic Students.`);
 
     // 4. Insert Questions with dual ownership (Admin & Teacher)
     const questionsToInsert = sampleQuestions.map((q, idx) => ({
@@ -146,6 +267,11 @@ const runSeed = async () => {
         showPercentile: true,
         randomizeQuestions: true,
         randomizeOptions: true,
+        targetScope: 'SECTION',
+        targetDepartment: 'CSE',
+        targetYear: 3,
+        targetSections: ['A', 'B'],
+        academicYear: '2025-2026',
         createdBy: admin._id,
       },
       {
@@ -408,7 +534,137 @@ const runSeed = async () => {
 
     console.log('[Seed] Pre-seeded peer attempts for dynamic leaderboard verification.');
 
-    // 6. Seed Welcome Notifications
+    // 6. Seed Academic Assignments
+    const asg1 = await Assignment.create({
+      title: 'Design Pattern Implementation: Strategy & Factory Patterns',
+      description: 'Implement flexible behavioral and creational design patterns in Java/TypeScript with unit test validation.',
+      subject: 'Software Engineering',
+      department: 'CSE',
+      year: 3,
+      section: 'A',
+      scope: 'SECTION',
+      academicYear: '2025-2026',
+      instructions: 'Submit a comprehensive implementation report and unit test coverage exceeding 80%.',
+      maxMarks: 20,
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      createdBy: teacher._id,
+      status: 'PUBLISHED',
+    });
+
+    const asg2 = await Assignment.create({
+      title: 'Dynamic Programming Graph Optimization',
+      description: 'Analyze time-space tradeoffs between Bellman-Ford and Floyd-Warshall for all-pairs shortest paths.',
+      subject: 'Data Structures & Algorithms',
+      department: 'CSE',
+      year: 3,
+      section: 'A',
+      scope: 'SECTION',
+      academicYear: '2025-2026',
+      instructions: 'Provide complexity derivations and benchmark outputs for dense and sparse topologies.',
+      maxMarks: 25,
+      dueDate: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000),
+      createdBy: teacher._id,
+      status: 'PUBLISHED',
+    });
+
+    // 7. Seed Student Assignment Submission
+    await AssignmentSubmission.create({
+      assignmentId: asg1._id,
+      studentId: student._id,
+      submissionText: 'Implemented Strategy pattern for dynamic pricing and Factory for notification providers. All tests passing with 92% coverage.',
+      submittedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      status: 'GRADED',
+      marksObtained: 18,
+      feedback: 'Excellent modular structure and clean unit tests. Well documented edge cases.',
+      gradedBy: teacher._id,
+      gradedAt: new Date(),
+    });
+
+    // 8. Seed Study Materials (Unit 1, Unit 2, Unit 3)
+    await StudyMaterial.create([
+      {
+        title: 'Asymptotic Analysis & Recurrence Relations',
+        subject: 'Data Structures & Algorithms',
+        unit: 'Unit 1',
+        topic: 'Master Theorem & Big-O Notation',
+        description: 'Comprehensive lecture slides covering divide-and-conquer recurrence equations and asymptotic bounds.',
+        department: 'CSE',
+        year: 3,
+        sections: ['A', 'B', 'C'],
+        fileUrl: '/uploads/materials/dsa-unit1-asymptotic.pdf',
+        fileType: 'pdf',
+        fileSize: 2450000,
+        uploadedBy: teacher._id,
+        status: 'ACTIVE',
+      },
+      {
+        title: 'Self-Balancing Binary Search Trees',
+        subject: 'Data Structures & Algorithms',
+        unit: 'Unit 2',
+        topic: 'AVL & Red-Black Tree Rotations',
+        description: 'Illustrated walkthrough of LL, RR, LR, RL tree rotations and logarithmic search invariant guarantees.',
+        department: 'CSE',
+        year: 3,
+        sections: ['A', 'B', 'C'],
+        fileUrl: '/uploads/materials/dsa-unit2-trees.pdf',
+        fileType: 'pdf',
+        fileSize: 3100000,
+        uploadedBy: teacher._id,
+        status: 'ACTIVE',
+      },
+      {
+        title: 'Graph Algorithms & Shortest Path Protocols',
+        subject: 'Data Structures & Algorithms',
+        unit: 'Unit 3',
+        topic: 'Dijkstra and Bellman-Ford Shortest Path',
+        description: 'Comparative analysis of single-source shortest path routing algorithms with negative cycle detection.',
+        department: 'CSE',
+        year: 3,
+        sections: ['A', 'B', 'C'],
+        fileUrl: '/uploads/materials/dsa-unit3-graphs.pdf',
+        fileType: 'pdf',
+        fileSize: 4200000,
+        uploadedBy: teacher._id,
+        status: 'ACTIVE',
+      },
+    ]);
+
+    // 9. Seed Announcements
+    await Announcement.create([
+      {
+        title: 'Mid-Term Assessment Schedule - Odd Semester 2025-2026',
+        message: 'Mid-term examinations for B.Tech CSE 3rd Year commence on October 15. Verify your assigned lab slots and student ID credentials.',
+        scope: 'YEAR',
+        department: 'CSE',
+        year: 3,
+        priority: 'HIGH',
+        createdBy: admin._id,
+      },
+      {
+        title: 'Annual Technical Symposium & Project Exhibition',
+        message: 'Submissions for the GLB Innovation Summit are open. All department students can register working prototypes.',
+        scope: 'COLLEGE',
+        priority: 'NORMAL',
+        createdBy: admin._id,
+      },
+    ]);
+
+    // 10. Seed Academic Course Feedback
+    await Feedback.create([
+      {
+        category: 'COURSE',
+        subject: 'Data Structures & Algorithms',
+        department: 'CSE',
+        year: 3,
+        section: 'A',
+        studentId: student._id,
+        rating: 5,
+        message: 'The interactive tree rotation visuals in Unit 2 made complex balancing logic very intuitive.',
+        isAnonymous: false,
+      },
+    ]);
+
+    // 11. Seed Welcome Notifications
     await Notification.create([
       {
         userId: student._id,
